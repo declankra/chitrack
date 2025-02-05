@@ -15,29 +15,41 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  themeColor: "#ffffff",
 };
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),
   title: "Chitrack: Chicago CTA Ventra Transit Tracker",
   description: "Real-time updates on Chicago CTA Ventra transit status and delays, better than Transit Tracker.",
+  keywords: ["Chicago", "CTA", "Ventra", "Transit", "Tracker", "Transit Status", "Transit Delays"],
 
     // Open Graph metadata for rich sharing previews
     openGraph: {
       title: "Chitrack: Chicago CTA Ventra Transit Tracker",
       description: "Real-time updates on Chicago CTA Ventra transit status and delays, better than Transit Tracker.",
-      url: process.env.NEXT_PUBLIC_BASE_URL,
       siteName: "Chitrack: Chicago CTA Ventra Transit Tracker",
-      images: [
-        {
+      images: [{
           url: "/og-image.png", // This should be 1200x630px for optimal sharing
           width: 1200,
           height: 630,
           alt: "Chitrack Preview",
-        }
-      ],
+        }],
       locale: "en_US",
       type: "website",
+      url: process.env.NEXT_PUBLIC_BASE_URL,
+    },
+
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
     },
 
   // Favicon and manifest
