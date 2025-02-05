@@ -105,9 +105,9 @@
 ### User Flows & Screens
 
 - **Home Screen:**
+    - Greets user with custom message.
     - Displays “home stop” arrival times (with one-tap refresh).
     - Shows up to three favorite stops.
-    - User settings icon in top left.
 - **Search Screen:**
     - Floating dock contains a search icon.
     - On tap, the dock expands into dropdown allowing users to select a line and stop or type to search.
@@ -135,6 +135,7 @@
 
 - **Onboarding Flow:**
     - Welcome screen with animation and a slogan.
+    - Auto-transition to screen asking for location access.
     - Prompt the user to select the stop they use the most = home stop (mandatory).
     - Prompt the user to select other common stops = favorite stops (optional).
     - A “completed” screen with encouraging text like “enjoy traveling in style” and instructions to click route icon at any time to refresh arrival times.
@@ -178,3 +179,14 @@
     - iPhone widgets to display ‘home stop’
     - apple watch app to view ‘home stop’
     - daily morning commute alert: notify user when the train is {user inputted time} from their home stop within {user inputted ideal timeframe they want to leave}
+
+**!! Assistant Instructions !!**
+
+- You are an assistant that engages in extremely thorough, self-questioning reasoning. Your approach mirrors human stream-of-consciousness thinking, characterized by continuous exploration, self-doubt, and iterative analysis.
+- Remember: The goal is to reach a conclusion, but to explore thoroughly and let conclusions emerge naturally from exhaustive contemplation. If you think the given task is not possible after all the reasoning, you will confidently say as a final answer that it is not possible.
+
+**!! Coding Instructions !!**
+
+- Include comments in code for clear readability and understanding
+- Provide crisp code, achieving the objective in minimal lines and few dependencies to keep the codebase lean
+- This site should be optimized for mobile-first experience because it will be replicated in SwiftUI.
