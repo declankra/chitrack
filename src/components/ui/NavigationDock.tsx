@@ -3,69 +3,64 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Home, Search, Map } from 'lucide-react';
-import { Dock, DockIcon } from '@/components/ui/dock';
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
-interface NavigationDockProps {
-  className?: string;
-}
+const DOCK_ITEMS = [
+  { name: 'Home', icon: Home, path: '/home' },
+  { name: 'Search', icon: Search, path: '/search' },
+  { name: 'Map', icon: Map, path: '/map' },
+];
 
-export default function NavigationDock({ className }: NavigationDockProps) {
+export default function NavigationDock() {
   const pathname = usePathname();
-
+  
   return (
     <div className="fixed bottom-0 left-0 right-0 flex justify-center items-center w-full pb-[env(safe-area-inset-bottom)] bg-gradient-to-t from-background/80 to-background/0 backdrop-blur-lg">
-      <Dock 
-        className="mb-4 border-none shadow-lg bg-background/80"
-        iconSize={24}
-        iconMagnification={32}
-        iconDistance={80}
-        direction="middle"
-      >
-        <Link href="/home">
-          <DockIcon 
-            className={`transition-all ${
-              pathname === '/home' 
-                ? 'after:content-[""] after:absolute after:-bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-primary' 
-                : ''
-            }`}
-          >
-            <Home 
-              className={pathname === '/home' ? 'text-primary' : 'text-muted-foreground'}
-              size={24} 
-            />
-          </DockIcon>
-        </Link>
-
-        <Link href="/search">
-          <DockIcon 
-            className={`transition-all ${
-              pathname === '/search' 
-                ? 'after:content-[""] after:absolute after:-bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-primary' 
-                : ''
-            }`}
-          >
-            <Search 
-              className={pathname === '/search' ? 'text-primary' : 'text-muted-foreground'}
-              size={24} 
-            />
-          </DockIcon>
-        </Link>
-
-        <Link href="/map">
-          <DockIcon 
-            className={`transition-all ${
-              pathname === '/map' 
-                ? 'after:content-[""] after:absolute after:-bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-primary' 
-                : ''
-            }`}
-          >
-            <Map 
-              className={pathname === '/map' ? 'text-primary' : 'text-muted-foreground'}
-              size={24} 
-            />
-          </DockIcon>
-        </Link>
-      </Dock>
+      <nav className="flex items-center gap-3 bg-background/5 border border-border backdrop-blur-lg py-2 px-4 rounded-full shadow-lg mb-4">
+        {DOCK_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.path;
+          
+          return (
+            <Link
+              key={item.name}
+              href={item.path}
+              className={cn(
+                "relative cursor-pointer p-3 rounded-full transition-colors",
+                "text-muted-foreground hover:text-primary",
+                isActive && "text-primary"
+              )}
+            >
+              <Icon size={24} className="relative z-10" />
+              
+              {isActive && (
+                <motion.div
+                  layoutId="tubelight"
+                  className="absolute inset-0 w-full h-full -z-0"
+                  initial={false}
+                  transition={{
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 30,
+                  }}
+                >
+                  {/* Tubelight effect - now at bottom */}
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-primary rounded-b-full">
+                    {/* Glow effects */}
+                    <div className="absolute w-8 h-4 bg-primary/20 rounded-full blur-md -bottom-2 -left-1" />
+                    <div className="absolute w-6 h-4 bg-primary/20 rounded-full blur-md -bottom-1 left-0" />
+                    <div className="absolute w-3 h-3 bg-primary/20 rounded-full blur-sm -bottom-0.5 left-1.5" />
+                  </div>
+                  
+                  {/* Subtle background glow */}
+                  {/* Removed background glow */}
+                  </motion.div>
+              )}
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }
