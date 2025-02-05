@@ -1,6 +1,7 @@
 // src/app/(app)/home/page.tsx
+import HomeScreen from '@/components/sections/HomeScreen';
 
 export default function Home() {
-  return <div>Home</div>;
+  return <HomeScreen />;
 }
 
