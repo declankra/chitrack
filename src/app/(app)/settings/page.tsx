@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import FeedbackDialog from "@/components/utilities/FeedbackDialog";
 
 // Add this interface near the top of the file
 interface UserData {
@@ -222,9 +223,10 @@ export default function Settings() {
               </button>
             </div>
           </form>
+          {/* Feedback Dialog */}
+          <FeedbackDialog />
         </CardContent>
       </Card>
     </div>
   );
 }
-
