@@ -129,7 +129,7 @@ export default function SettingsPage() {
       <div className="flex items-center gap-2 mb-2">
         <Settings className="h-5 w-5 text-muted-foreground" />
         <h1 className="text-xl font-bold">Settings</h1>
-      </div>      
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Customize Your Profile</CardTitle>
@@ -232,6 +232,21 @@ export default function SettingsPage() {
       </Card>
       {/* Feedback Dialog */}
       <FeedbackDialog />
+      {/* Credits Section */}
+      <div className="pt-4 mt-12 mb-4 text-center text-sm text-muted-foreground">
+        <p className="px-4">
+          brought to you by{" "}
+          <a
+            href="https://www.declankramper.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline transition-colors duration-200"
+          >
+            Declan
+          </a>
+          <i> because Chicagoans deserve a better transit experience</i>
+        </p>
+      </div>
     </div>
   );
 }
