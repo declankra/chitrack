@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import { Settings } from "lucide-react";
 import FeedbackDialog from "@/components/utilities/FeedbackDialog";
 
 // Add this interface near the top of the file
@@ -15,7 +16,7 @@ interface UserData {
   paidUserStatus: boolean;
 }
 
-export default function Settings() {
+export default function SettingsPage() {
   // Simulate or determine userID in a real project:
   // This might come from authentication or a unique device ID.
   // For demonstration, we use a fixed "demo-user".
@@ -125,10 +126,13 @@ export default function Settings() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold mb-2">Settings</h1>
+      <div className="flex items-center gap-2 mb-2">
+        <Settings className="h-5 w-5 text-muted-foreground" />
+        <h1 className="text-xl font-bold">Settings</h1>
+      </div>      
       <Card>
         <CardHeader>
-          <CardTitle>Customize Your Settings</CardTitle>
+          <CardTitle>Customize Your Profile</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={saveUserData} className="space-y-4">
@@ -223,10 +227,11 @@ export default function Settings() {
               </button>
             </div>
           </form>
-          {/* Feedback Dialog */}
-          <FeedbackDialog />
+
         </CardContent>
       </Card>
+      {/* Feedback Dialog */}
+      <FeedbackDialog />
     </div>
   );
 }

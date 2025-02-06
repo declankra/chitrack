@@ -82,11 +82,10 @@ export default function FeedbackDialog() {
       {/* Main Feedback Dialog */}
       <Dialog open={feedbackDialogOpen} onOpenChange={setFeedbackDialogOpen}>
         <DialogTrigger asChild>
-          <Button 
+        <Button 
             variant="outline"
-            className="w-full mt-8 text-muted-foreground hover:text-primary"
-          >
-            What do you think? Help improve ChiTrack
+            className="w-full mt-8 text-muted-foreground hover:text-primary bg-background/80 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] transition-shadow duration-300"
+          >            What do you think? Help improve ChiTrack
           </Button>
         </DialogTrigger>
         
