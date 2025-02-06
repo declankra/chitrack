@@ -33,7 +33,7 @@ export default function HomeScreen() {
         <h1 className="text-2xl font-semibold tracking-tight">
           {getGreeting()},
           <Link 
-            href="/user-settings"
+            href="/settings"
             className="inline-block border-b border-dotted border-primary ml-2 hover:border-solid transition-all"
           >
             {userData.name}
@@ -64,7 +64,7 @@ export default function HomeScreen() {
                 No home stop set. Visit settings to set your most frequent stop.
               </p>
               <Link
-                href="/user-settings"
+                href="/settings"
                 className="inline-block mt-2 text-sm text-primary hover:underline"
               >
                 Set Home Stop
@@ -100,7 +100,7 @@ export default function HomeScreen() {
                 No favorite stops set. Add up to three favorite stops for quick access.
               </p>
               <Link
-                href="/user-settings"
+                href="/settings"
                 className="inline-block mt-2 text-sm text-primary hover:underline"
               >
                 Add Favorite Stops
