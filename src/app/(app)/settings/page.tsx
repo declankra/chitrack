@@ -187,7 +187,7 @@ export default function SettingsPage() {
               {favoriteStops.length < 3 && (
                 <button
                   type="button"
-                  className="mt-2 text-primary hover:underline"
+                  className="mt-2 text-xs text-muted-foreground hover:underline"
                   onClick={addFavoriteStopField}
                 >
                   Add Another Favorite Stop
