@@ -23,7 +23,7 @@ w
 
 - NextJS API Route functions: hosted on Vercel
 - Postgres db: Supabase (serverless)
-- Redis db: Railwaysh (serverless)
+- Redis db: Railway (serverless)
 
 ### Architecture
 
