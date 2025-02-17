@@ -8,10 +8,6 @@ import { fetchGtfsStations } from '@/lib/gtfs';
 const STATIONS_CACHE_KEY = 'CTA_STATIONS_DATA';
 const CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
-// CTA API configuration
-const CTA_API_KEY = process.env.CTA_TRAIN_API_KEY;
-const CTA_GTFS_URL = 'https://www.transitchicago.com/downloads/sch_data/google_transit.zip';
-
 /**
  * Fetch fresh station data from CTA GTFS feed
  * This function downloads and parses the GTFS feed to get station information
