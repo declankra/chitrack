@@ -17,7 +17,7 @@
 
 **app**
 
-- FE UI: SwiftUI
+- FE UI: React Native
 
 **shared:**
 
@@ -28,7 +28,7 @@
 ### Architecture
 
 - **Frontend (Web):** Next.js (UI) hosted on Vercel with Next.js API routes for serverless functions.
-- **Frontend (Mobile):** SwiftUI for iOS, with local data stored using @AppStorage.
+- **Frontend (Mobile):** React Native for iOS, with local data stored using @AppStorage.
 - **Backend & Caching:** Upstash Redis used as a serverless cache to limit CTA API calls.
 - **API Integration for Mobile:** The mobile app calls Next.js API routes (hosted on Vercel) that handle logic, caching, and communication with the CTA API.
 - **Mobile App Backend:** Supabase for low-volume user data (user info, feedback, paywall info)
@@ -59,7 +59,7 @@
     - Implements caching logic to reduce direct CTA API calls (keeping within the 100k/day limit).
     - Endpoints provide arrival time data and handle logic for refreshing and caching.
 - **API Call Strategy:**
-    - Each device calls these endpoints using Swift’s async/await.
+    - Each device calls these endpoints using React Native’s async/await.
     - Manual refresh triggered by tapping on a stop.
     - Auto-refresh every 30 seconds to keep data current.
     - CTA_TRAIN_API_KEY: ff0c4676989b4a9aa9dc88ec14220292
