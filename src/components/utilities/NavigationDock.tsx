@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 
 const DOCK_ITEMS = [
   { name: 'Home', icon: Home, path: '/home' },
-  { name: 'Search', icon: Search, path: '/search' },
   { name: 'Map', icon: Map, path: '/map' },
+  { name: 'Search', icon: Search, path: '/search' },
 ];
 
 export default function NavigationDock() {
