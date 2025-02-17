@@ -1,4 +1,4 @@
-# **Chicago CTA Transit Tracker – One-Pager Implementation Guide**
+# **Chicago CTA Transit Tracker: ChiTrack – One-Pager Implementation Guide**
 
 ## Overview
 
@@ -11,7 +11,7 @@
 ### Tech Stack
 
 **web:**
-
+w
 - FE host: Vercel (serverless)
 - FE UI: NextJS
 
@@ -23,7 +23,7 @@
 
 - NextJS API Route functions: hosted on Vercel
 - Postgres db: Supabase (serverless)
-- Redis db: Railway (serverless)
+- Redis db: Railwaysh (serverless)
 
 ### Architecture
 
