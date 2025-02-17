@@ -1,3 +1,4 @@
+// src/app/(app)/search/page.tsx
 "use client";
 
 import React, { useState } from 'react';
