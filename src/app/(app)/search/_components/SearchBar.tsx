@@ -2,26 +2,41 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { searchStations, type Station } from '@/lib/data/stations';
+import { type Station } from '@/lib/data/stations';
 import { Card } from '@/components/ui/card';
 import { Search } from 'lucide-react';
+import { useStations } from '@/lib/hooks/useStations';
 
 interface SearchBarProps {
   onStationSelect: (station: Station) => void;
 }
 
+// Search stations by name
+export async function searchStations(query: string, stations: Station[]): Promise<Station[]> {
+  const normalizedQuery = query.toLowerCase().trim();
+  return stations.filter(station => 
+      station.stationName.toLowerCase().includes(normalizedQuery)
+  );
+}
+
 export default function SearchBar({ onStationSelect }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Station[]>([]);
+  const { data: stations = [] } = useStations();
 
   // Update search results when query changes
   useEffect(() => {
-    if (query.trim()) {
-      setResults(searchStations(query));
-    } else {
-      setResults([]);
-    }
-  }, [query]);
+    const fetchResults = async () => {
+      if (query.trim()) {
+        const searchResults = await searchStations(query, stations);
+        setResults(searchResults);
+      } else {
+        setResults([]);
+      }
+    };
+    
+    fetchResults();
+  }, [query, stations]);
 
   return (
     <div className="w-full space-y-2">
@@ -32,7 +47,7 @@ export default function SearchBar({ onStationSelect }: SearchBarProps) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search for a station..."
+          placeholder="Start typing"
           className="h-10 w-full rounded-md border border-input pl-9 pr-4 text-sm"
         />
       </div>
@@ -43,13 +58,13 @@ export default function SearchBar({ onStationSelect }: SearchBarProps) {
           <ul className="divide-y">
             {results.map((station) => (
               <li
-                key={station.staId}
+                key={station.stationId}
                 onClick={() => onStationSelect(station)}
                 className="cursor-pointer p-3 hover:bg-accent transition-colors"
               >
-                <div className="font-medium">{station.staNm}</div>
+                <div className="font-medium">{station.stationName}</div>
                 <div className="text-xs text-muted-foreground">
-                  {station.routes.join(' • ')}
+                  {station.stops.map(stop => stop.directionName).filter(Boolean).join(' • ')}
                 </div>
               </li>
             ))}
