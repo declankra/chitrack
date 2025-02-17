@@ -1,7 +1,7 @@
 // src/app/(app)/layout.tsx
 'use client';
 
-import NavigationDock from '@/components/ui/NavigationDock';
+import NavigationDock from '@/components/utilities/NavigationDock';
 import { usePathname } from 'next/navigation';
 
 export default function AppLayout({

@@ -4,7 +4,7 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import { OpenPanelProvider } from "@/lib/analytics/openpanel/OpenPanelProvider";
+import { Providers } from './providers';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -81,10 +81,11 @@ export default function RootLayout({
         className={`${inter.variable} antialiased min-h-screen w-full overflow-x-hidden`}
         suppressHydrationWarning
       >
-        <OpenPanelProvider />
-        <Header />
-        <main className="w-full overflow-x-hidden">{children}</main>
-        <Footer />
+        <Providers>
+          <Header />
+          <main className="w-full overflow-x-hidden">{children}</main>
+          <Footer />
+        </Providers>
       </body>
     </html>
   );
