@@ -1,7 +1,7 @@
 // src/app/api/cta/stations/route.ts
 import { NextResponse } from 'next/server';
 import redis from '@/lib/redis';
-import { type Station } from '@/lib/data/stations';
+import { Station } from '@/lib/types/cta';
 import { fetchGtfsStations } from '@/lib/gtfs';
 
 // Redis cache configuration

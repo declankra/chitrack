@@ -4,41 +4,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import redis from "@/lib/redis";
+import { Arrival, ArrivalsApiResponse, StationArrivalsResponse } from "@/lib/types/cta";
 
 // CTA TRAIN API KEY from your environment
 const CTA_API_KEY = process.env.CTA_TRAIN_API_KEY;
-
-/**
- * Core CTA arrival interface (similar to ArrivalEta).
- */
-interface Arrival {
-  staId: string;   // Parent station ID (4xxxx)
-  stpId: string;   // Stop (platform) ID (3xxxx)
-  staNm: string;   // Station name
-  stpDe: string;   // Platform description (e.g. "Service toward Loop")
-  rn: string;      // Train run number
-  rt: string;      // Route (Red, Blue, Brn, etc.)
-  destNm: string;  // Destination name
-  arrT: string;    // Predicted arrival time
-  prdt: string;    // Timestamp when prediction was generated
-  isApp: string;   // "1" if approaching
-  isDly: string;   // "1" if delayed
-  isSch: string;   // "1" if schedule-based (no live data)
-}
-
-/**
- * For each station, we group arrivals by stop ID, returning up to 3 arrivals in ascending order.
- */
-interface StationData {
-  stationId: string;
-  stationName: string;
-  stops: Array<{
-    stopId: string;
-    stopName: string;  // stpDe
-    route: string;     // route code (Red, Blue, etc.)
-    arrivals: Arrival[];
-  }>;
-}
 
 /**
  * Helper to parse "YYYYMMDD HH:mm:ss" and return JS Date.
@@ -186,7 +155,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Now build final array
-    const result: StationData[] = Object.values(stationMap).map((stationEntry) => {
+    const result: StationArrivalsResponse[] = Object.values(stationMap).map((stationEntry) => {
       // For each stop, sort arrivals by arrT ascending, slice top 3
       const stopsArray = Object.values(stationEntry.stops).map((stopEntry) => {
         // Sort arrivals by their predicted arrival time

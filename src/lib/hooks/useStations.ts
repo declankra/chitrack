@@ -2,7 +2,8 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { fetchStationsDynamic, type Station } from '../data/stations';
+import { fetchStationsDynamic } from '../data/stations';
+import { Station } from '@/lib/types/cta';
 
 /**
  * Custom hook for fetching and caching CTA station data

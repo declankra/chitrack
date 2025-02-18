@@ -1,26 +1,11 @@
+// src/app/api/cta/arrivals/stop/route.ts
+
 import { NextRequest, NextResponse } from "next/server"
 import redis from "@/lib/redis"
+import { Arrival, ArrivalsApiResponse, StopArrivalsResponse } from "@/lib/types/cta"
 
 // CTA TRAIN API KEY from your environment
 const CTA_API_KEY = process.env.CTA_TRAIN_API_KEY
-
-/**
- * The CTA Arrivals API returns an array of "eta" objects (Arrival).
- */
-interface Arrival {
-  staId: string   // Parent station ID (4xxxx)
-  stpId: string   // Stop (platform) ID (3xxxx)
-  staNm: string   // Station name
-  stpDe: string   // Platform description (e.g. "Service toward Loop")
-  rn: string      // Train run number
-  rt: string      // Route (Red, Blue, Brn, etc.)
-  destNm: string  // Destination name
-  arrT: string    // Predicted arrival time
-  prdt: string    // Timestamp when prediction was generated
-  isApp: string   // "1" if approaching
-  isDly: string   // "1" if delayed
-  isSch: string   // "1" if schedule-based (no live data)
-}
 
 /**
  * Helper to parse "YYYYMMDD HH:mm:ss" and return a numerical timestamp.
@@ -110,8 +95,10 @@ export async function GET(request: NextRequest) {
     const rawArrivals: Arrival[] = data.ctatt.eta
     if (rawArrivals.length === 0) {
       // no arrivals returned
-      const result = {
+      const result: StopArrivalsResponse = {
         stopId,
+        stopName: "",
+        route: "",
         arrivals: [],
       }
       // store in cache
@@ -135,7 +122,7 @@ export async function GET(request: NextRequest) {
     const arrivals = rawArrivals.slice(0, 3)
 
     // final response object
-    const result = {
+    const result: StopArrivalsResponse = {
       stopId: stpId,
       stopName: stpDe,
       route,
