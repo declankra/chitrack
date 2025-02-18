@@ -59,7 +59,7 @@ function parseArrivalTime(ctaTime: string): number {
 }
 
 /**
- * GET /api/cta/arrivals/master?stations=40360,40380,...
+ * GET /api/cta/arrivals/stations?stations=40360,40380,...
  *
  * 1. Accepts a comma-separated list of station IDs in the query string
  * 2. Builds a single CTA Arrivals request with multiple &mapid=...
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
 
     // Sort IDs to keep consistent cache key
     stationIds.sort();
-    const cacheKey = `masterArrivals_${stationIds.join("_")}`;
+    const cacheKey = `stationArrivals_${stationIds.join("_")}`;
 
     // Check Redis
     try {
@@ -217,7 +217,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error: any) {
-    console.error("Error in Master Arrivals API route:", error);
+    console.error("Error in Station Arrivals API route:", error);
     return NextResponse.json(
       { error: "Server error.", details: error?.message },
       { status: 500 }
