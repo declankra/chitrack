@@ -12,6 +12,20 @@
  */
 export type RouteColor = 'Red' | 'Blue' | 'Brn' | 'G' | 'Org' | 'P' | 'Pink' | 'Y';
 
+/**
+ * Tailwind CSS background color classes for each route
+ */
+export const ROUTE_COLORS: Record<RouteColor, string> = {
+  Red: "bg-red-600",
+  Blue: "bg-blue-600",
+  Brn: "bg-amber-800",
+  G: "bg-green-600",
+  Org: "bg-orange-500",
+  P: "bg-purple-600",
+  Pink: "bg-pink-500",
+  Y: "bg-yellow-500",
+} as const;
+
 ///////////////////////////////
 //     Core Station Types    
 ///////////////////////////////

@@ -2,8 +2,6 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { fetchStationsDynamic } from '../data/stations';
-import { Station } from '@/lib/types/cta';
 
 /**
  * Custom hook for fetching and caching CTA station data
@@ -12,16 +10,34 @@ import { Station } from '@/lib/types/cta';
  * @returns {Object} Query result object containing stations data and loading state
  */
 export function useStations() {
-  return useQuery<Station[]>({
+  const query = useQuery({
     queryKey: ['stations'],
-    queryFn: fetchStationsDynamic,
-    staleTime: 24 * 60 * 60 * 1000, // Consider data fresh for 24 hours
-    gcTime: 7 * 24 * 60 * 60 * 1000, // Keep in cache for 7 days
-    refetchOnMount: false, // Don't refetch on every mount
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    retry: 3, // Retry failed requests 3 times
-    initialData: [], // Start with empty array to prevent undefined checks
+    queryFn: async () => {
+      console.log('useStations: Starting fetch');
+      try {
+        const response = await fetch('/api/cta/stations');
+        console.log('useStations: API Response status:', response.status);
+        
+        if (!response.ok) {
+          console.error('useStations: API error:', response.statusText);
+          throw new Error('Failed to fetch stations');
+        }
+        
+        const data = await response.json();
+        console.log('useStations: Received data:', {
+          dataExists: !!data,
+          dataLength: Array.isArray(data) ? data.length : 'not an array',
+          firstFew: Array.isArray(data) ? data.slice(0, 2) : 'not an array'
+        });
+        return data;
+      } catch (error) {
+        console.error('useStations: Fetch error:', error);
+        throw error;
+      }
+    },
   });
+
+  return query;
 }
 
 /**

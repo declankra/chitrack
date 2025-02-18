@@ -20,11 +20,21 @@ import {
  */
 export async function fetchStationsDynamic(): Promise<Station[]> {
     try {
+        console.log('Fetching stations data from API...');
         const response = await fetch('/api/cta/stations');
+        console.log('Stations API response status:', response.status);
+        
         if (!response.ok) {
             throw new Error(`Failed to fetch station data: ${response.statusText}`);
         }
-        return response.json();
+        
+        const data = await response.json();
+        console.log('Stations data received:', {
+            count: data.length,
+            sample: data.slice(0, 2)
+        });
+        
+        return data;
     } catch (error) {
         console.error('Error fetching station data:', error);
         throw error;

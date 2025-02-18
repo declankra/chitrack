@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from 'react';
 import { useStations } from '@/lib/hooks/useStations';
 import { Card } from '@/components/ui/card';
+import { Station } from '@/lib/types/cta';
+import { StationStop } from '@/lib/types/cta';
 
 const DOCK_ITEMS = [
   { name: 'Home', icon: Home, path: '/home' },
@@ -22,16 +24,48 @@ export default function NavigationDock() {
   const { data: stations = [] } = useStations();
   const [searchResults, setSearchResults] = useState<typeof stations>([]);
   
+  // Debug log for stations data
   useEffect(() => {
+    console.log('Stations data loaded:', { count: stations.length, firstFew: stations.slice(0, 3) });
+  }, [stations]);
+
+  // Auto-expand search when on search page
+  useEffect(() => {
+    console.log('Search expanded state:', isSearchExpanded, 'pathname:', pathname);
+    setIsSearchExpanded(pathname === '/search');
+  }, [pathname]);
+
+  useEffect(() => {
+    console.log('Search query changed:', searchQuery);
     if (searchQuery.trim()) {
-      const results = stations.filter(station => 
+      const results = stations.filter((station: Station) => 
         station.stationName.toLowerCase().includes(searchQuery.toLowerCase().trim())
       );
+      console.log('Filtered results:', { 
+        query: searchQuery, 
+        resultCount: results.length, 
+        results: results.slice(0, 3)
+      });
       setSearchResults(results);
+      // Emit search query changed event
+      const event = new CustomEvent('searchQueryChanged', { detail: searchQuery });
+      window.dispatchEvent(event);
     } else {
       setSearchResults([]);
+      // Also emit empty query
+      const event = new CustomEvent('searchQueryChanged', { detail: '' });
+      window.dispatchEvent(event);
     }
   }, [searchQuery, stations]);
+
+  // Debug log for search results updates
+  useEffect(() => {
+    console.log('Search results updated:', { 
+      count: searchResults.length, 
+      results: searchResults.slice(0, 3),
+      isExpanded: isSearchExpanded
+    });
+  }, [searchResults, isSearchExpanded]);
   
   const handleSearchClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -44,8 +78,17 @@ export default function NavigationDock() {
   const handleStationSelect = (station: typeof stations[0]) => {
     setSearchQuery('');
     setSearchResults([]);
-    setIsSearchExpanded(false);
-    // Handle station selection (e.g., show arrival board)
+    // Don't collapse search on the search page
+    if (pathname !== '/search') {
+      setIsSearchExpanded(false);
+    }
+    // Navigate to search page with station if not already there
+    if (pathname !== '/search') {
+      router.push('/search');
+    }
+    // Emit a custom event that the search page can listen to
+    const event = new CustomEvent('stationSelected', { detail: station });
+    window.dispatchEvent(event);
   };
   
   return (
@@ -61,7 +104,7 @@ export default function NavigationDock() {
           >
             <Card className="w-full overflow-hidden">
               <ul className="divide-y">
-                {searchResults.map((station) => (
+                {searchResults.map((station: Station) => (
                   <li
                     key={station.stationId}
                     onClick={() => handleStationSelect(station)}
@@ -69,7 +112,7 @@ export default function NavigationDock() {
                   >
                     <div className="font-medium">{station.stationName}</div>
                     <div className="text-xs text-muted-foreground">
-                      {station.stops.map(stop => stop.directionName).filter(Boolean).join(' • ')}
+                      {station.stops.map((stop: StationStop) => stop.directionName).filter(Boolean).join(' • ')}
                     </div>
                   </li>
                 ))}

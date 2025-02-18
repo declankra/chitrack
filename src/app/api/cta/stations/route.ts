@@ -106,10 +106,13 @@ async function getCachedStations(): Promise<Station[] | null> {
  */
 async function fetchStationsDynamic(): Promise<Station[]> {
     try {
+        console.log('Attempting to fetch stations data...');
         // First try to get from cache
         const cachedStations = await getCachedStations();
         if (cachedStations) {
-            console.log('Retrieved stations from cache');
+            console.log('Retrieved stations from cache:', {
+                count: cachedStations.length
+            });
             return cachedStations;
         }
 
@@ -119,11 +122,15 @@ async function fetchStationsDynamic(): Promise<Station[]> {
         
         // Cache the fresh data for next time
         await cacheStationData(stations);
+        console.log('Fresh stations data fetched and cached:', {
+            count: stations.length
+        });
         
         return stations;
     } catch (error) {
         console.error('Error fetching station data:', error);
         // If all else fails, return example data as fallback
+        console.log('Returning fallback station data');
         const fallbackData = await fetchFreshStationData();
         return fallbackData;
     }
@@ -135,7 +142,12 @@ async function fetchStationsDynamic(): Promise<Station[]> {
  */
 export async function GET() {
     try {
+        console.log('Stations API endpoint called');
         const stations = await fetchStationsDynamic();
+        console.log('Stations data fetched:', {
+            count: stations.length,
+            sample: stations.slice(0, 2)
+        });
         return NextResponse.json(stations);
     } catch (error) {
         console.error('Error in stations API route:', error);

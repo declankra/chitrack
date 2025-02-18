@@ -94,7 +94,10 @@ export async function GET(request: NextRequest) {
 
     const ctaUrl = `${baseUrl}?${urlParams.toString()}`;
     const ctaResponse = await fetch(ctaUrl);
+    console.log('CTA API Response Status:', ctaResponse.status);
+    
     if (!ctaResponse.ok) {
+      console.error('CTA API Error Response:', await ctaResponse.text());
       return NextResponse.json(
         {
           error: "Failed to fetch data from CTA Arrivals API",
@@ -105,6 +108,13 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await ctaResponse.json();
+    console.log('Raw CTA API Response:', {
+      hasCtatt: !!data?.ctatt,
+      hasEta: !!data?.ctatt?.eta,
+      sampleEta: data?.ctatt?.eta?.[0],
+      etaCount: data?.ctatt?.eta?.length
+    });
+
     if (!data?.ctatt?.eta) {
       return NextResponse.json(
         {
@@ -175,6 +185,16 @@ export async function GET(request: NextRequest) {
         stationName: stationEntry.stationName,
         stops: stopsArray,
       };
+    });
+
+    // Log the processed results
+    console.log('Processed station arrivals:', {
+      stationCount: result.length,
+      firstStation: result[0] ? {
+        stationId: result[0].stationId,
+        stopCount: result[0].stops.length,
+        sampleArrival: result[0].stops[0]?.arrivals[0]
+      } : null
     });
 
     // Cache final result for 30s
