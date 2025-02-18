@@ -7,7 +7,7 @@ import { unlink } from 'fs/promises';
 import { type File } from 'unzipper';
 import * as unzipper from 'unzipper';
 import { parse } from 'csv-parse';
-import { Station, StationStop } from '../data/stations';
+import { Station, StationStop } from '@/lib/types/cta';
 import { Readable } from 'stream';
 
 const GTFS_TEMP_PATH = '/tmp/cta_gtfs.zip';
@@ -99,7 +99,7 @@ function transformStops(gtfsStops: GtfsStop[]): Station[] {
             if (station) {
                 station.stops.push({
                     stopId: stop.stop_id,
-                    directionName: stop.stop_desc || undefined,
+                    directionName: stop.stop_desc || 'Unknown Direction',
                     parentStationId: stop.parent_station,
                     lat: parseFloat(stop.stop_lat),
                     lon: parseFloat(stop.stop_lon)
