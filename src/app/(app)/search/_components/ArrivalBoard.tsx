@@ -4,7 +4,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCcw } from 'lucide-react';
+import { RefreshCcw, Clock } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import type { RouteColor } from "@/lib/types/cta";
 import { ROUTE_COLORS } from "@/lib/types/cta";
@@ -25,6 +25,18 @@ interface ArrivalBoardProps {
   lastUpdated: Date | null;
   onRefresh: () => void;
   stationName: string;
+}
+
+/**
+ * Format relative time in minutes
+ */
+function formatRelativeTime(date: Date | null): string {
+  if (!date) return '';
+  const diffMs = Date.now() - date.getTime();
+  const diffMins = Math.round(diffMs / 60000);
+  
+  if (diffMins < 1) return 'just now';
+  return `${diffMins}m ago`;
 }
 
 /**
@@ -102,6 +114,20 @@ function formatArrivalTime(arrival: Arrival) {
   return `${diffMin} min (${timeString})`;
 }
 
+/**
+ * Map route codes to full line names
+ */
+function getFullLineName(code: string): string {
+  const lineNames: Record<string, string> = {
+    'Org': 'Orange',
+    'G': 'Green',
+    'Brn': 'Brown',
+    'Y': 'Yellow',
+    'P': 'Purple',
+  };
+  return lineNames[code] || code;
+}
+
 export default function ArrivalBoard({ 
   arrivals, 
   loading, 
@@ -113,20 +139,27 @@ export default function ArrivalBoard({
   return (
     <div className="flex-1 overflow-y-auto px-4 pb-24">
       <Card>
-        <CardHeader className="flex items-center justify-between">
-          <CardTitle className="text-xl">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-xl font-bold text-center">
             {stationName}
           </CardTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onRefresh}
-            disabled={loading}
-            className={loading ? "animate-spin" : ""}
-            aria-label="Refresh arrivals"
-          >
-            <RefreshCcw className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center justify-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onRefresh}
+              disabled={loading}
+              className={loading ? "animate-spin" : ""}
+              aria-label="Refresh arrivals"
+            >
+              <RefreshCcw className="w-4 h-4" />
+            </Button>
+            {lastUpdated && (
+              <div className="text-xs text-muted-foreground">
+                Updated {formatRelativeTime(lastUpdated)}
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {error && (
@@ -139,9 +172,7 @@ export default function ArrivalBoard({
           )}
           {arrivals.map((stationInfo: any) => (
             <div key={stationInfo.stationId} className="space-y-6">
-              {/* This station might have multiple stops - group arrivals by stops */}
               {stationInfo.stops.map((stop: any) => {
-                // We want to group arrivals by route code
                 const groupedByRoute: Record<string, Arrival[]> = {};
                 stop.arrivals.forEach((arr: Arrival) => {
                   if (!groupedByRoute[arr.rt]) {
@@ -151,46 +182,58 @@ export default function ArrivalBoard({
                 });
 
                 return (
-                  <div key={stop.stopId} className="space-y-2">
-                    <h3 className="text-sm font-semibold text-muted-foreground">
+                  <div key={stop.stopId} className="space-y-4">
+                    <h3 className="text-base font-semibold">
                       {stop.stopName}
                     </h3>
                     {Object.entries(groupedByRoute).map(([route, arrivalsArr]) => (
                       <div
                         key={route}
-                        className="border rounded-md p-3 bg-accent/50"
+                        className="border rounded-lg overflow-hidden bg-accent/50"
                       >
-                        <div className="flex items-center gap-2 mb-2">
+                        <div 
+                          className={cn(
+                            "px-3 py-2 flex items-center gap-2",
+                            ROUTE_COLORS[route as RouteColor]?.replace('bg-', 'bg-opacity-10 bg-') || "bg-gray-100"
+                          )}
+                        >
                           <div
                             className={cn(
-                              "w-3 h-3 rounded-full",
+                              "w-2 h-2 rounded-full",
                               ROUTE_COLORS[route as RouteColor] || "bg-gray-600"
                             )}
                           />
-                          <span className="font-medium">{route} Line</span>
+                          <span className="font-medium text-sm">{getFullLineName(route)}</span>
                         </div>
-                        <div className="space-y-1">
+                        <div className="divide-y">
                           {arrivalsArr.length > 0 ? (
                             arrivalsArr.map((arrObj, i) => (
-                              <div key={i} className="flex items-center justify-between text-sm">
-                                <div className="flex items-center gap-2">
+                              <div 
+                                key={i} 
+                                className="px-3 py-2 flex items-center justify-between"
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-sm">
+                                    {arrObj.destNm}
+                                  </span>
                                   {arrObj.isDly === "1" && (
-                                    <span className="text-destructive">
+                                    <span className="text-xs text-destructive font-medium">
                                       Delayed
                                     </span>
                                   )}
-                                  <span>{arrObj.destNm}</span>
                                 </div>
                                 <div className={cn(
-                                  "font-medium",
-                                  (arrObj.isApp === "1" || formatArrivalTime(arrObj).startsWith('Due')) && "text-destructive"
+                                  "text-sm tabular-nums",
+                                  (arrObj.isApp === "1" || formatArrivalTime(arrObj).startsWith('Due')) 
+                                    ? "text-destructive font-bold"
+                                    : "font-medium"
                                 )}>
                                   {formatArrivalTime(arrObj)}
                                 </div>
                               </div>
                             ))
                           ) : (
-                            <p className="text-sm text-muted-foreground">
+                            <p className="px-3 py-2 text-sm text-muted-foreground">
                               No upcoming arrivals
                             </p>
                           )}
@@ -202,11 +245,6 @@ export default function ArrivalBoard({
               })}
             </div>
           ))}
-          {lastUpdated && (
-            <p className="mt-4 text-xs text-muted-foreground">
-              Last updated: {lastUpdated.toLocaleTimeString()}
-            </p>
-          )}
         </CardContent>
       </Card>
     </div>
