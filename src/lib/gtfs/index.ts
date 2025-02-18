@@ -99,7 +99,7 @@ function transformStops(gtfsStops: GtfsStop[]): Station[] {
             if (station) {
                 station.stops.push({
                     stopId: stop.stop_id,
-                    directionName: stop.stop_desc || 'Unknown Direction',
+                    directionName: stop.stop_desc || 'N/A',
                     parentStationId: stop.parent_station,
                     lat: parseFloat(stop.stop_lat),
                     lon: parseFloat(stop.stop_lon)
