@@ -1,0 +1,244 @@
+// src/app/(marketing)/page.tsx
+import { Iphone16Pro } from "@/components/ui/iphone-16-pro";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import Link from "next/link";
+import { 
+  Clock, 
+  StarIcon, 
+  MapPin, 
+  RefreshCw,
+  Users,
+  CheckCircle2,
+  HelpCircle
+} from "lucide-react";
+
+// Hero section component
+const Hero = () => (
+  <section className="relative w-full overflow-hidden bg-background pb-20 pt-10 md:pt-0">
+    <div className="container relative z-10 mx-auto px-4">
+      <div className="grid gap-12 md:grid-cols-2 md:gap-20 md:pt-20">
+        {/* Text content */}
+        <div className="flex flex-col justify-center space-y-8">
+          <div className="space-y-6">
+            <h2 className="text-sm font-medium tracking-wider text-secondary uppercase">
+              Chicago Transit Tracking Done Right
+            </h2>
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+              The Chicago CTA Tracker Ventra Couldn't Give You
+            </h1>
+            <p className="text-xl text-muted-foreground">
+              Save time and travel in style with real-time CTA arrivals, beautifully designed for Chicago professionals.
+            </p>
+          </div>
+          
+          {/* Social proof */}
+          <div className="flex items-center gap-4">
+            <div className="flex -space-x-2">
+              <Users className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Trusted by 1,000+ Chicago commuters
+            </p>
+          </div>
+
+          {/* CTA Button */}
+          <Button size="lg" className="w-full sm:w-auto">
+            Download on the App Store
+          </Button>
+        </div>
+
+        {/* iPhone mockup */}
+        <div className="relative mx-auto w-full max-w-[280px] md:max-w-none">
+          <Iphone16Pro width={320} height={640} className="w-full" />
+        </div>
+      </div>
+    </div>
+  </section>
+);
+
+// Features section showing key benefits
+const Features = () => (
+  <section className="w-full bg-muted/50 py-20">
+    <div className="container mx-auto px-4">
+      <div className="mb-12 text-center">
+        <h2 className="mb-4 text-3xl font-bold">Why professionals choose ChiTrack</h2>
+        <p className="text-muted-foreground">
+          Designed for efficiency, built for reliability
+        </p>
+      </div>
+
+      <div className="grid gap-8 md:grid-cols-3">
+        {[
+          {
+            icon: Clock,
+            title: "One-tap access",
+            description:
+              "See your home stop arrival times instantly. No more navigating through menus.",
+          },
+          {
+            icon: StarIcon,
+            title: "Save favorite stops",
+            description:
+              "Quick access to your most-used stations for seamless daily commutes.",
+          },
+          {
+            icon: MapPin,
+            title: "Smart location",
+            description:
+              "Automatically shows the closest stations when you're out exploring Chicago.",
+          },
+          {
+            icon: RefreshCw,
+            title: "Real-time updates",
+            description:
+              "Live arrival times that refresh automatically every 30 seconds.",
+          },
+          {
+            icon: CheckCircle2,
+            title: "Clean interface",
+            description:
+              "Modern, uncluttered design that puts the information you need front and center.",
+          },
+          {
+            icon: HelpCircle,
+            title: "Clear alerts",
+            description:
+              "Service updates in plain English, right when you need them.",
+          },
+        ].map((feature, i) => (
+          <Card key={i} className="p-6">
+            <feature.icon className="mb-4 h-6 w-6 text-primary" />
+            <h3 className="mb-2 font-semibold">{feature.title}</h3>
+            <p className="text-sm text-muted-foreground">{feature.description}</p>
+          </Card>
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
+// Problem & Solution section
+const ProblemSolution = () => (
+  <section className="w-full py-20">
+    <div className="container mx-auto px-4">
+      <div className="grid gap-12 md:grid-cols-2">
+        <div>
+          <h2 className="mb-6 text-3xl font-bold">The Problem</h2>
+          <div className="space-y-4">
+            <p className="text-muted-foreground">
+              Current transit apps are clunky and slow, making it frustrating to:
+            </p>
+            <ul className="space-y-2 text-muted-foreground">
+              <li className="flex items-center gap-2">
+                • Navigate through multiple menus just to check arrival times
+              </li>
+              <li className="flex items-center gap-2">
+                • Decipher confusing service alerts
+              </li>
+              <li className="flex items-center gap-2">
+                • Switch between different stations quickly
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="mb-6 text-3xl font-bold">The Solution</h2>
+          <div className="space-y-4">
+            <p className="text-muted-foreground">
+              ChiTrack reimagines the transit experience with:
+            </p>
+            <ul className="space-y-2 text-muted-foreground">
+              <li className="flex items-center gap-2">
+                • One-tap access to your most important stations
+              </li>
+              <li className="flex items-center gap-2">
+                • Clean, professional interface that respects your time
+              </li>
+              <li className="flex items-center gap-2">
+                • Smart features that adapt to your daily routine
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+);
+
+// FAQ section with schema markup
+const FAQ = () => {
+  const faqs = [
+    {
+      question: "How accurate are the train arrival times?",
+      answer:
+        "ChiTrack uses official CTA data so it is more accurate than using Apple/Google Maps. Arrival predictions are typically accurate within ±1 minute and are updated every 30 seconds."
+    },
+    {
+      question: "Does ChiTrack work for all CTA train lines?",
+      answer:
+        "Yes, ChiTrack supports all CTA train lines including Red, Blue, Brown, Green, Orange, Purple, Pink, and Yellow lines."
+    },
+    {
+      question: "How much does ChiTrack cost?",
+      answer:
+        "ChiTrack offers a 5-day free trial, after which a one-time payment of $6.99 unlocks lifetime access to all features."
+    },
+    {
+      question: "Can I see bus arrivals on ChiTrack?",
+      answer:
+        "Currently, ChiTrack focuses on providing the best train tracking experience. Bus tracking will be added in a future update."
+    }
+  ];
+
+  // Schema markup for FAQs
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(faq => ({
+      "@type": "Question",
+      "name": faq.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.answer
+      }
+    }))
+  };
+
+  return (
+    <section className="w-full bg-muted/50 py-20">
+      <div className="container mx-auto px-4">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+        
+        <h2 className="mb-12 text-center text-3xl font-bold">
+          Frequently Asked Questions
+        </h2>
+
+        <div className="mx-auto max-w-3xl space-y-6">
+          {faqs.map((faq, i) => (
+            <div key={i} className="space-y-2">
+              <h3 className="font-semibold">{faq.question}</h3>
+              <p className="text-muted-foreground">{faq.answer}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// Main landing page component
+export default function LandingPage() {
+  return (
+    <>
+      <Hero />
+      <Features />
+      <ProblemSolution />
+      <FAQ />
+    </>
+  );
+}
