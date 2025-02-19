@@ -24,49 +24,44 @@ export default function NavigationDock() {
   const { data: stations = [] } = useStations();
   const [searchResults, setSearchResults] = useState<typeof stations>([]);
   
-  // Debug log for stations data
-  useEffect(() => {
-    console.log('Stations data loaded:', { count: stations.length, firstFew: stations.slice(0, 3) });
-  }, [stations]);
-
   // Auto-expand search when on search page
   useEffect(() => {
-    console.log('Search expanded state:', isSearchExpanded, 'pathname:', pathname);
-    setIsSearchExpanded(pathname === '/search');
-  }, [pathname]);
+    const shouldExpand = pathname === '/search';
+    if (isSearchExpanded !== shouldExpand) {
+      setIsSearchExpanded(shouldExpand);
+    }
+  }, [pathname, isSearchExpanded]);
 
   useEffect(() => {
-    console.log('Search query changed:', searchQuery);
-    if (searchQuery.trim()) {
-      const results = stations.filter((station: Station) => 
-        station.stationName.toLowerCase().includes(searchQuery.toLowerCase().trim())
+    if (!searchQuery.trim()) {
+      if (searchResults.length > 0) {
+        setSearchResults([]);
+      }
+      // Emit empty query
+      const event = new CustomEvent('searchQueryChanged', { detail: '' });
+      window.dispatchEvent(event);
+      return;
+    }
+
+    const filteredResults = stations.filter((station: Station) => 
+      station.stationName.toLowerCase().includes(searchQuery.toLowerCase().trim())
+    );
+
+    // Only update if results are different
+    const resultsChanged = 
+      searchResults.length !== filteredResults.length || 
+      !searchResults.every((result: Station, index: number) => 
+        result.stationId === filteredResults[index]?.stationId
       );
-      console.log('Filtered results:', { 
-        query: searchQuery, 
-        resultCount: results.length, 
-        results: results.slice(0, 3)
-      });
-      setSearchResults(results);
+
+    if (resultsChanged) {
+      setSearchResults(filteredResults);
       // Emit search query changed event
       const event = new CustomEvent('searchQueryChanged', { detail: searchQuery });
       window.dispatchEvent(event);
-    } else {
-      setSearchResults([]);
-      // Also emit empty query
-      const event = new CustomEvent('searchQueryChanged', { detail: '' });
-      window.dispatchEvent(event);
     }
-  }, [searchQuery, stations]);
+  }, [searchQuery, stations, searchResults]);
 
-  // Debug log for search results updates
-  useEffect(() => {
-    console.log('Search results updated:', { 
-      count: searchResults.length, 
-      results: searchResults.slice(0, 3),
-      isExpanded: isSearchExpanded
-    });
-  }, [searchResults, isSearchExpanded]);
-  
   const handleSearchClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isSearchExpanded) {
