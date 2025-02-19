@@ -20,24 +20,31 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),
-  title: "Chitrack: Chicago CTA Ventra Transit Tracker",
+  title: "ChiTrack: Chicago CTA Ventra Transit Tracker",
   description: "Real-time updates on Chicago CTA Ventra transit status and delays, better than Transit Tracker.",
-  keywords: ["Chicago", "CTA", "Ventra", "Transit", "Tracker", "Transit Status", "Transit Delays"],
+  keywords: ["Chicago CTA tracker", "CTA", "Ventra", "Transit", "Tracker", "Chicago", "Transit Status", "Transit Delays", "real-time CTA", "Chicago Trains", "Chicago CTA Ventra", "Chicago CTA Ventra tracker", "Chicago CTA Ventra status", "Chicago CTA Ventra delays"],
 
     // Open Graph metadata for rich sharing previews
     openGraph: {
-      title: "Chitrack: Chicago CTA Ventra Transit Tracker",
+      title: "ChiTrack: Chicago CTA Ventra Transit Tracker",
       description: "Real-time updates on Chicago CTA Ventra transit status and delays, better than Transit Tracker.",
-      siteName: "Chitrack: Chicago CTA Ventra Transit Tracker",
+      siteName: "ChiTrack: Chicago CTA Ventra Transit Tracker",
       images: [{
           url: "/og-image.png", // This should be 1200x630px for optimal sharing
           width: 1200,
           height: 630,
-          alt: "Chitrack Preview",
+          alt: "ChiTrack CTA Tracker Preview",
         }],
       locale: "en_US",
       type: "website",
       url: process.env.NEXT_PUBLIC_BASE_URL,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "ChiTrack – Chicago CTA & Ventra Tracker",
+      description: "Real-time CTA Ventra train times in Chicago. Travel in style.",
+      creator: "@dkbuildsco", 
+      images: ["/og-image.png"]
     },
 
     robots: {
