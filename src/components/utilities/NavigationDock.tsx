@@ -106,9 +106,6 @@ export default function NavigationDock() {
                     className="cursor-pointer p-3 hover:bg-accent transition-colors"
                   >
                     <div className="font-medium">{station.stationName}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {station.stops.map((stop: StationStop) => stop.directionName).filter(Boolean).join(' • ')}
-                    </div>
                   </li>
                 ))}
               </ul>

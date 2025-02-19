@@ -33,13 +33,21 @@ export const ROUTE_COLORS: Record<RouteColor, string> = {
 /**
  * High-level station entity (the "parent station").
  * CTA "mapid" or "staId" is in the 4xxxx range identifying the entire station.
+ * 
+ * Represents a CTA Station, which can have multiple platform stops.
+ * Example:
+ *  - stationId: "40360" (Southport)
+ *  - stationName: "Southport"
+ *  - lat: 41.943744
+ *  - lon: -87.663619
+ *  - stops: array of StationStop objects (each representing a direction/platform)
  */
 export interface Station {
     /** Parent Station ID (e.g., 40360 for Southport) */
     stationId: string;
     /** Human-friendly station name (e.g. "Southport") */
     stationName: string;
-    /** Collection of stops (one per platform or direction) */
+    /** The array of platform-specific stops (3xxxx IDs) */
     stops: StationStop[];
     /** Optional lat/lon for mapping the station center */
     lat?: number;
@@ -47,19 +55,31 @@ export interface Station {
 }
 
 /**
- * Represents a single platform or direction within a station.
- * CTA "stpid" is in the 3xxxx range.
+ * Represents an individual platform/direction (stop) within a station.
+ * CTA calls these "Stop IDs" "stpid" (3xxxx). For example:
+ *   - stopId: "30070" (Service toward Kimball)
+ *   - directionName: "Service toward Kimball" or "Service toward Loop"
  */
 export interface StationStop {
     /** Stop ID (e.g., 30070 for Southport inbound) */
     stopId: string;
-    /** Direction or platform description (e.g. "Service toward Loop") */
+    /** Human-friendly stop name (e.g. "Southport"). The GTFS "stop_name" for this platform. This might be identical to stationName or might include extra route info, depending on CTA GTFS data. */
+    stopName: string;
+  /**
+   * The GTFS "stop_desc", describing the service direction or other platform details.
+   * For CTA, this often looks like "Service toward Loop" or "Service toward Kimball".
+   * If no data was provided, it may default to "N/A".
+   */
+    stopDesc: string;
+    /** Direction or platform description (e.g. "Service toward Loop"). For convenience, we store a direct "directionName" which is typically the same as stop_desc in CTA data. This might be used in the UI to quickly label the platform or direction. */
     directionName: string;
     /** Parent station ID reference */
     parentStationId: string;
     /** Optional lat/lon for the specific platform */
     lat?: number;
     lon?: number;
+    /** Wheelchair boarding accessibility: "0" = unknown, "1" = accessible, "2" = not accessible */
+    wheelchairBoarding?: string;
 }
 
 ///////////////////////////////
@@ -101,6 +121,8 @@ export interface SimpleArrival {
 
 /**
  * Core arrival information returned by CTA API
+ * Represents a single Arrival record from the CTA Arrivals API.
+ * Example usage: next arriving train at a given station or platform.
  */
 export interface Arrival {
     staId: string;   // Parent station ID (4xxxx)
@@ -108,9 +130,9 @@ export interface Arrival {
     staNm: string;   // Station name
     stpDe: string;   // Platform description (e.g. "Service toward Loop")
     rn: string;      // Train run number
-    rt: string;      // Route (Red, Blue, Brn, etc.)
+    rt: string;      // Route Code (Red, Blue, Brn, etc.)
     destNm: string;  // Destination name
-    arrT: string;    // Predicted arrival time
+    arrT: string;    // CTA-provided predicted arrival time in the format "YYYYMMDD HH:mm:ss" (local Chicago time)
     prdt: string;    // Timestamp when prediction was generated
     isApp: string;   // "1" if approaching
     isDly: string;   // "1" if delayed
@@ -205,6 +227,8 @@ export interface LocationsApiResponse {
 
 /**
  * Structured response for station arrivals
+ * For aggregated arrivals at a station, we often have data grouped by station, then stops.
+ * This interface is used in the station arrivals route (api/cta/arrivals/station).
  */
 export interface StationArrivalsResponse {
     stationId: string;
@@ -219,10 +243,13 @@ export interface StationArrivalsResponse {
 
 /**
  * Structured response for stop arrivals
+ * For arrivals specifically at a single stop (api/cta/arrivals/stop).
  */
 export interface StopArrivalsResponse {
     stopId: string;
     stopName: string;
+    stopDesc?: string;
+    directionName?: string;
     route: string;
     arrivals: Arrival[];
 } 
