@@ -128,6 +128,25 @@ function getFullLineName(code: string): string {
   return lineNames[code] || code;
 }
 
+/**
+ * Normalize route codes from the API to match our RouteColor type
+ */
+function normalizeRouteColor(route: string): RouteColor {
+  // Convert route to proper case to match RouteColor type
+  const routeMap: Record<string, RouteColor> = {
+    'RED': 'Red',
+    'BLUE': 'Blue',
+    'BRN': 'Brn',
+    'G': 'G',
+    'ORG': 'Org',
+    'P': 'P',
+    'PINK': 'Pink',
+    'Y': 'Y'
+  };
+  
+  return routeMap[route.toUpperCase()] || 'Red'; // Default to Red if unknown
+}
+
 export default function ArrivalBoard({ 
   arrivals, 
   loading, 
@@ -136,6 +155,9 @@ export default function ArrivalBoard({
   onRefresh,
   stationName
 }: ArrivalBoardProps) {
+  // Add debug logging for ROUTE_COLORS
+  console.log("ROUTE_COLORS:", ROUTE_COLORS);
+
   return (
     <div className="flex-1 overflow-y-auto px-4 pb-24">
       <Card>
@@ -186,60 +208,73 @@ export default function ArrivalBoard({
                     <h3 className="text-base font-semibold">
                       {stop.stopName}
                     </h3>
-                    {Object.entries(groupedByRoute).map(([route, arrivalsArr]) => (
-                      <div
-                        key={route}
-                        className="border rounded-lg overflow-hidden bg-accent/50"
-                      >
-                        <div 
-                          className={cn(
-                            "px-3 py-2 flex items-center gap-2",
-                            ROUTE_COLORS[route as RouteColor]?.replace('bg-', 'bg-opacity-10 bg-') || "bg-gray-100"
-                          )}
+                    {Object.entries(groupedByRoute).map(([route, arrivalsArr]) => {
+                      const normalizedRoute = normalizeRouteColor(route);
+                      
+                      // Add debug logging for route color mapping
+                      console.log("Original Route:", route);
+                      console.log("Normalized Route:", normalizedRoute);
+                      console.log("Mapped Color:", ROUTE_COLORS[normalizedRoute]);
+                      
+                      // Add debug logging for computed class
+                      const computedClass = ROUTE_COLORS[normalizedRoute]?.replace('bg-', 'bg-opacity-10 bg-') || "bg-gray-100";
+                      console.log("Computed class:", computedClass);
+
+                      return (
+                        <div
+                          key={route}
+                          className="border rounded-lg overflow-hidden bg-accent/50"
                         >
-                          <div
+                          <div 
                             className={cn(
-                              "w-2 h-2 rounded-full",
-                              ROUTE_COLORS[route as RouteColor] || "bg-gray-600"
+                              "px-3 py-2 flex items-center gap-2",
+                              computedClass
                             )}
-                          />
-                          <span className="font-medium text-sm">{getFullLineName(route)}</span>
-                        </div>
-                        <div className="divide-y">
-                          {arrivalsArr.length > 0 ? (
-                            arrivalsArr.map((arrObj, i) => (
-                              <div 
-                                key={i} 
-                                className="px-3 py-2 flex items-center justify-between"
-                              >
-                                <div className="flex flex-col">
-                                  <span className="font-medium text-sm">
-                                    {arrObj.destNm}
-                                  </span>
-                                  {arrObj.isDly === "1" && (
-                                    <span className="text-xs text-destructive font-medium">
-                                      Delayed
+                          >
+                            <div
+                              className={cn(
+                                "w-2 h-2 rounded-full",
+                                ROUTE_COLORS[normalizedRoute] || "bg-gray-600"
+                              )}
+                            />
+                            <span className="font-medium text-sm">{getFullLineName(route)}</span>
+                          </div>
+                          <div className="divide-y">
+                            {arrivalsArr.length > 0 ? (
+                              arrivalsArr.map((arrObj, i) => (
+                                <div 
+                                  key={i} 
+                                  className="px-3 py-2 flex items-center justify-between"
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="font-medium text-sm">
+                                      {arrObj.destNm}
                                     </span>
-                                  )}
+                                    {arrObj.isDly === "1" && (
+                                      <span className="text-xs text-destructive font-medium">
+                                        Delayed
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className={cn(
+                                    "text-sm tabular-nums",
+                                    (arrObj.isApp === "1" || formatArrivalTime(arrObj).startsWith('Due')) 
+                                      ? "text-destructive font-bold"
+                                      : "font-medium"
+                                  )}>
+                                    {formatArrivalTime(arrObj)}
+                                  </div>
                                 </div>
-                                <div className={cn(
-                                  "text-sm tabular-nums",
-                                  (arrObj.isApp === "1" || formatArrivalTime(arrObj).startsWith('Due')) 
-                                    ? "text-destructive font-bold"
-                                    : "font-medium"
-                                )}>
-                                  {formatArrivalTime(arrObj)}
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="px-3 py-2 text-sm text-muted-foreground">
-                              No upcoming arrivals
-                            </p>
-                          )}
+                              ))
+                            ) : (
+                              <p className="px-3 py-2 text-sm text-muted-foreground">
+                                No upcoming arrivals
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 );
               })}

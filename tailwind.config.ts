@@ -6,6 +6,19 @@ export default {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  safelist: [
+    // Your route color classes
+    'bg-red-600',
+    'bg-blue-600',
+    'bg-amber-800',
+    'bg-green-600',
+    'bg-orange-500',
+    'bg-purple-600',
+    'bg-pink-500',
+    'bg-yellow-500',
+    // If you use .replace('bg-', 'bg-opacity-10 bg-'), also safelist bg-opacity-10
+    'bg-opacity-10',
+  ],
   theme: {
   	extend: {
   		colors: {
