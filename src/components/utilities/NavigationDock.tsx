@@ -23,7 +23,7 @@ export default function NavigationDock() {
   const [searchQuery, setSearchQuery] = useState('');
   const { data: stations = [] } = useStations();
   const [searchResults, setSearchResults] = useState<typeof stations>([]);
-  
+
   // Auto-expand search when on search page
   useEffect(() => {
     const shouldExpand = pathname === '/search';
@@ -43,14 +43,14 @@ export default function NavigationDock() {
       return;
     }
 
-    const filteredResults = stations.filter((station: Station) => 
+    const filteredResults = stations.filter((station: Station) =>
       station.stationName.toLowerCase().includes(searchQuery.toLowerCase().trim())
     );
 
     // Only update if results are different
-    const resultsChanged = 
-      searchResults.length !== filteredResults.length || 
-      !searchResults.every((result: Station, index: number) => 
+    const resultsChanged =
+      searchResults.length !== filteredResults.length ||
+      !searchResults.every((result: Station, index: number) =>
         result.stationId === filteredResults[index]?.stationId
       );
 
@@ -85,7 +85,7 @@ export default function NavigationDock() {
     const event = new CustomEvent('stationSelected', { detail: station });
     window.dispatchEvent(event);
   };
-  
+
   return (
     <div className="absolute bottom-0 left-0 right-0 flex flex-col justify-center items-center w-full bg-gradient-to-t from-background/80 to-background/0 backdrop-blur-lg">
       {/* Search Results */}
@@ -115,7 +115,8 @@ export default function NavigationDock() {
       </AnimatePresence>
 
       {/* Navigation Dock */}
-      <motion.nav 
+
+      <motion.nav
         className="flex items-center gap-3 bg-background/5 border border-border backdrop-blur-lg py-2 px-4 rounded-full shadow-lg mb-6"
         animate={{
           width: isSearchExpanded ? "90%" : "auto"
@@ -125,13 +126,16 @@ export default function NavigationDock() {
           const Icon = item.icon;
           const isActive = pathname === item.path;
           const isSearch = item.name === 'Search';
-          
+
           return (
             <motion.div
               key={item.name}
-              className="flex items-center"
+              className={cn(
+                "flex items-center",
+                isSearch && "max-w-full transition-all duration-200"
+              )}
               animate={{
-                flex: isSearch && isSearchExpanded ? 1 : "none"
+                width: isSearch && isSearchExpanded ? "100%" : "auto"
               }}
             >
               {isSearch ? (
