@@ -4,6 +4,8 @@ import redis from '@/lib/redis';
 import { Station } from '@/lib/types/cta';
 import { fetchGtfsStations } from '@/lib/gtfs';
 
+export const dynamic = 'force-dynamic';
+
 // Redis cache configuration
 const STATIONS_CACHE_KEY = 'CTA_STATIONS_DATA';
 const CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
@@ -34,6 +36,8 @@ async function fetchFreshStationData(): Promise<Station[]> {
                 stops: [
                     {
                         stopId: "30070",
+                        stopName: "Southport",
+                        stopDesc: "Service toward Kimball",
                         directionName: "Service toward Kimball",
                         parentStationId: "40360",
                         lat: 41.943744,
@@ -41,6 +45,8 @@ async function fetchFreshStationData(): Promise<Station[]> {
                     },
                     {
                         stopId: "30071",
+                        stopName: "Southport",
+                        stopDesc: "Service toward Loop",
                         directionName: "Service toward Loop",
                         parentStationId: "40360",
                         lat: 41.943744,
@@ -56,6 +62,8 @@ async function fetchFreshStationData(): Promise<Station[]> {
                 stops: [
                     {
                         stopId: "30170",
+                        stopName: "Howard",
+                        stopDesc: "Service toward 95th/Dan Ryan",
                         directionName: "Service toward 95th/Dan Ryan",
                         parentStationId: "41320",
                         lat: 42.019063,
@@ -63,6 +71,8 @@ async function fetchFreshStationData(): Promise<Station[]> {
                     },
                     {
                         stopId: "30171",
+                        stopName: "Howard",
+                        stopDesc: "Terminal arrival",
                         directionName: "Terminal arrival",
                         parentStationId: "41320",
                         lat: 42.019063,

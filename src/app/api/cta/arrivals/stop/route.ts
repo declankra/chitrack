@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from "next/server"
 import redis from "@/lib/redis"
 import { Arrival, ArrivalsApiResponse, StopArrivalsResponse } from "@/lib/types/cta"
 
+export const dynamic = 'force-dynamic';
+
 // CTA TRAIN API KEY from your environment
 const CTA_API_KEY = process.env.CTA_TRAIN_API_KEY
 

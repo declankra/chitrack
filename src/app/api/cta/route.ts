@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import redis from "@/lib/redis";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * This route fetches CTA train arrivals for a given 'mapid' (train station),
  * caches it in Redis for 30 seconds, and returns the data as JSON.
