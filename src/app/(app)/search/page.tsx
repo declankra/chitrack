@@ -5,25 +5,6 @@ import { useStations } from "@/lib/hooks/useStations";
 import type { Station } from "@/lib/types/cta";
 import ArrivalBoard from "./_components/ArrivalBoard";
 
-interface Arrival {
-  rt: string;
-  destNm: string;
-  arrT: string;
-  isApp: string;
-  isDly: string;
-  stpDe: string;
-}
-
-/**
- * The searchStations helper function filters station list by stationName
- */
-async function searchStations(query: string, stations: Station[]): Promise<Station[]> {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return [];
-  return stations.filter((station) =>
-    station.stationName.toLowerCase().includes(normalized)
-  );
-}
 
 export default function SearchPage() {
   const { data: stations = [] } = useStations();
