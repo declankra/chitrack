@@ -154,9 +154,9 @@ GET http://lapi.transitchicago.com/api/1.0/ttpositions.aspx?key=YOUR_KEY&rt=red,
 
 Below is a suggested approach to keep data dynamic and accurate while reducing unnecessary hits to the CTA servers:
 
-1. **Long-Term (24hr) Caching of Station Metadata**  
+1. **Long-Term (7d) Caching of Station Metadata**  
    - **What**: The large reference lists of stations, stop IDs, station names, etc. rarely change.  
-   - **How**: Once every 24 hours, fetch (or store from your own copy of CTA’s GTFS data) the station/stop metadata:  
+   - **How**: Once every 7 days, fetch (or store from your own copy of CTA’s GTFS data) the station/stop metadata:  
      - Parent station IDs  
      - Stop IDs  
      - Station names, lat/lon  
@@ -253,7 +253,7 @@ Below is an example “holistic” flow for how your app might fetch and cache C
 - **Follow This Train** lets you see a specific train’s future stops.
 - **Locations** let you display real-time train positions on a map or list.
 - **Use parent station IDs** (4xxxx) to retrieve predictions for **all directions** at once, or **stop IDs** (3xxxx) for a specific platform.
-- **Station metadata** rarely changes; cache it for up to 24 hours.
+- **Station metadata** rarely changes; cache it for up to 7 days.
 - **Arrival times** are best cached for ~30-60 seconds to stay fresh but reduce direct API hits.
 - Always incorporate error checking (`errCd`), handle “delays” (`isDly=1`), and distinguish between live vs. schedule-based arrivals (`isSch=1`).
 

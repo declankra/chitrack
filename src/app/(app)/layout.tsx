@@ -5,7 +5,7 @@ import NavigationDock from '@/components/utilities/NavigationDock';
 import { usePathname } from 'next/navigation';
 import { StationsProvider } from '@/lib/providers/StationsProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function AppLayout({
   children,
@@ -26,6 +26,14 @@ export default function AppLayout({
         },
       })
   );
+
+  // Set specific query defaults after client initialization
+  useEffect(() => {
+    // For station metadata, use a 7-day stale time to match server-side caching
+    queryClient.setQueryDefaults(['stations'], {
+      staleTime: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+    });
+  }, [queryClient]);
 
   return (
     // Full-width background container

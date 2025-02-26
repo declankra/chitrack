@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 // Redis cache configuration
 const STATIONS_CACHE_KEY = 'CTA_STATIONS_DATA';
-const CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
+const CACHE_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 /**
  * Fetch fresh station data from CTA GTFS feed
@@ -90,7 +90,7 @@ async function fetchFreshStationData(): Promise<Station[]> {
 async function cacheStationData(stations: Station[]): Promise<void> {
     try {
         await redis.setex(STATIONS_CACHE_KEY, CACHE_TTL_SECONDS, JSON.stringify(stations));
-        console.log(`Successfully cached ${stations.length} stations for 24 hours`);
+        console.log(`Successfully cached ${stations.length} stations for 7 days`);
     } catch (error) {
         console.error('Failed to cache station data:', error);
     }
