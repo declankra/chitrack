@@ -31,7 +31,7 @@ interface GtfsStop {
   stop_id: string;
   stop_code: string;
   stop_name: string;
-  stop_desc: string;
+  stop_desc: string; // CTA often puts 'Service toward X' here
   stop_lat: string;
   stop_lon: string;
   zone_id: string;
@@ -40,7 +40,7 @@ interface GtfsStop {
   parent_station: string;
   stop_timezone: string;
   wheelchair_boarding: string;
-  direction: string; // CTA often includes direction in stops.txt
+  direction: string; // CTA sometimes includes a direction letter (N, S, E, W)
 }
 
 /**

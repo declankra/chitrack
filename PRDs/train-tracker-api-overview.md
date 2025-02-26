@@ -211,6 +211,7 @@ Below is a suggested approach to keep data dynamic and accurate while reducing u
 7. **Handling the “Loop”**  
    - Certain lines (Brown, Orange, Purple Express, Pink) circle the Loop tracks. You’ll see destinations like “Loop” or “Midway,” but behind the scenes, the `destSt` might remain the same even if the train physically changes direction on the Loop.  
    - Rely on `destNm` to show end users the “friendly” destination label.
+   
 
 ---
 
@@ -258,3 +259,25 @@ Below is an example “holistic” flow for how your app might fetch and cache C
 - Always incorporate error checking (`errCd`), handle “delays” (`isDly=1`), and distinguish between live vs. schedule-based arrivals (`isSch=1`).
 
 Using these guidelines, you’ll have a **holistic, smartly cached** CTA rail tracking system that retrieves data effectively, avoids rate-limit issues, and delivers fast, accurate results to your end users.
+
+
+## 9. Integrating GTFS Station Metadata for Directions/Platforms
+
+CTA’s GTFS “stops.txt” file provides essential metadata about each station and platform. In particular:
+- **`stop_desc`** often holds strings like “Service toward Loop” or “Service toward Kimball.”
+- **`direction`** can be a single letter (N, S, E, W) or be empty; CTA is not fully consistent, so it’s best to fallback to `stop_desc` for user-friendly text.
+
+When building user-facing features (e.g., station selector modals), ensure you show the platform’s “directionName” from GTFS. For example:
+
+- **Station name**: “Southport” (the parent station)
+- **Platform**:
+  - Stop ID: `30070`
+  - `stopDesc`: “Service toward Kimball”
+  - `direction`: “N” or blank
+  - A combined or fallback approach ensures we always have a friendly label.
+
+**Important**: The CTA Train Tracker Arrivals API returns `staNm` (station name) and `stpDe` (platform description), but it may not match the GTFS feed exactly. You should unify them by:
+1. Storing the GTFS `stop_desc` as your canonical direction or platform name.
+2. Comparing or falling back to the `stpDe` from the Arrivals API if GTFS data is missing.
+
+This consistency ensures your home screen, search page, and station selector show the same “direction” text that CTA uses, rather than “N/A” or a raw cardinal letter.
