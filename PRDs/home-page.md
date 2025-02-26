@@ -57,7 +57,7 @@ Transit users need immediate access to arrival times for their frequently used s
 
 2. **Selecting/Managing stops in settings**:
    - User sets home stop and favorite stops using the StopSelectorModal
-   - The StopSelectorModal should allow user to find their favorite stops by filtering by L1: station name > L2: stop description or direction (service towards loop, etc.)
+   - The StopSelectorModal should allow user to find their favorite stops by filtering by L1: station name > L2: stop description (service towards loop, etc.)
    - User can add/remove favorite stops
 
 3. **Returning User (Configured)**:
