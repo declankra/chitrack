@@ -9,7 +9,7 @@ import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Settings, AlertCircle, X, MapPin } from "lucide-react";
 import FeedbackDialog from "@/components/utilities/FeedbackDialog";
-import StationSelectorModal from "@/components/utilities/StationSelectorModal";
+import StopSelectorModal from "@/components/utilities/StopSelectorModal";
 import { Station, StationStop } from "@/lib/types/cta";
 import type { UserData } from "@/lib/types/user";
 
@@ -421,7 +421,7 @@ export default function SettingsPage() {
       </Card>
       
       {/* Station Selector Modal - Using the StationSelectorModal component */}
-      <StationSelectorModal
+      <StopSelectorModal
         isOpen={showStationSelector}
         onClose={closeStationSelector}
         onSelectStop={handleStopSelection}

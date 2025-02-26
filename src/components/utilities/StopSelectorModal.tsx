@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { X, Search, Train } from "lucide-react";
 import { Station, StationStop } from "@/lib/types/cta";
 
-interface StationSelectorModalProps {
+interface StopSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectStop: (stop: StationStop) => void;
@@ -12,14 +12,14 @@ interface StationSelectorModalProps {
   title: string;
 }
 
-export default function StationSelectorModal({
+export default function StopSelectorModal({
   isOpen,
   onClose,
   onSelectStop,
   stations,
   stationsLoading,
   title,
-}: StationSelectorModalProps) {
+}: StopSelectorModalProps) {
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 

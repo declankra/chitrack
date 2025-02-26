@@ -55,7 +55,12 @@ Transit users need immediate access to arrival times for their frequently used s
    - Clear guidance prompts user to set up home stop and favorite stops
    - Links direct user to the Settings page to configure preferences
 
-2. **Returning User (Configured)**:
+2. **Selecting/Manaing stop in settings**:
+   - User sets home stop and favorite stops using the StopSelectorModal
+   - The StopSelectorModal should allow user to find their favorite stops by filtering by L1: station name > L2: stop description
+   - User can add/remove favorite stops
+
+3. **Returning User (Configured)**:
    - Personalized greeting appears with user's name
    - Home stop section automatically loads latest arrival data
    - Favorite stops display in compact cards below
@@ -68,7 +73,6 @@ Transit users need immediate access to arrival times for their frequently used s
    - Tapping on a stop card expands it to show more detail
 
 4. **Navigation & Updates**:
-   - User can tap on station name to navigate to full search view for that station
    - Link to Settings page allows quick access to update preferences
    - Auto-update every 30 seconds (aligning with cache strategy)
    - Graceful error handling with retry options if network fails
@@ -78,6 +82,7 @@ Transit users need immediate access to arrival times for their frequently used s
    - If the API returns an error, show friendly error message with refresh option
    - If home stop is not set, prioritize the prompt to configure it
    - If the user has just edited settings, immediately reflect changes on return
+   - There should never be 'N/A' values for stops in the selector modal, it should always have a default value
 
 ## Testing Considerations
 - Test with various combinations of home stop and 0-3 favorite stops set
