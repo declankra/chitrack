@@ -281,3 +281,62 @@ When building user-facing features (e.g., station selector modals), ensure you s
 2. Comparing or falling back to the `stpDe` from the Arrivals API if GTFS data is missing.
 
 This consistency ensures your home screen, search page, and station selector show the same “direction” text that CTA uses, rather than “N/A” or a raw cardinal letter.
+
+
+## 10. Key Concepts
+
+### Station vs Stop vs Platform
+
+- **Station (mapid/staId)**: Physical location with 4xxxx ID
+  - Example: Southport station (40360)
+  - Contains multiple stops/platforms (typically one per direction)
+  
+- **Stop (stpid/stopId)**: Individual platform within a station with 3xxxx ID
+  - Example: Southport northbound platform (30070)
+  - Each has specific directional service (toward a terminal)
+
+### API Endpoints
+
+1. **Arrivals by Station** (`/api/cta/arrivals/station?stations=40360`)
+   - Returns arrival predictions for ALL platforms at specified station(s)
+   - Good for overview screens showing all directions
+
+2. **Arrivals by Stop** (`/api/cta/arrivals/stop?stopId=30070`)
+   - Returns arrival predictions for ONE specific platform
+   - Ideal for home screen showing arrivals in your preferred direction
+
+### Data Fields Mapping
+
+| GTFS Data      | Train Tracker API | Description                        |
+|----------------|-------------------|------------------------------------|
+| stop_id (3xxxx)| stpId             | Unique platform identifier         |
+| stop_name      | stpNm             | Name of stop/platform              |
+| stop_desc      | stpDe             | Direction description (e.g., "Service toward Loop") |
+| parent_station | staId (4xxxx)     | Parent station identifier          |
+| N/A            | destNm            | Final destination of train         |
+| N/A            | rt                | Route color code (Red, Blue, etc.) |
+
+## Best Practices
+
+1. **Directional Information**
+   - The CTA GTFS data inconsistently provides `direction` and `stop_desc`
+   - Our enhanced `transformStops` function extracts directional info through:
+     1. Explicit fields when available
+     2. Stop name analysis
+     3. Known terminal patterns
+     4. Meaningful defaults instead of "N/A"
+
+2. **Caching Strategy**
+   - Station metadata: 7 days (rarely changes)
+   - Arrival times: 30-60 seconds (balances freshness and API limits)
+   - Use stale-while-revalidate pattern for arrivals
+
+3. **UI Design**
+   - Always display meaningful platform descriptions
+   - Never show raw "N/A" values to users
+   - Use fallbacks like "Platform at [Station]" when needed
+
+4. **Error Handling**
+   - Implement graceful fallbacks when directional data is missing
+   - Consider station-level fallbacks if stop-level requests fail
+   - Show clear error states with retry options
