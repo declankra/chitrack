@@ -1,11 +1,11 @@
 // src/app/(app)/search/page.tsx
-
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useStations } from "@/lib/hooks/useStations";
 import type { Station } from "@/lib/types/cta";
 import ArrivalBoard from "./_components/ArrivalBoard";
+import { Search, RefreshCw } from "lucide-react";
 
 export default function SearchPage() {
   const { data: stations = [] } = useStations();
@@ -21,10 +21,8 @@ export default function SearchPage() {
   // Listen for station selection events from NavigationDock
   useEffect(() => {
     const handleStationSelected = (event: CustomEvent<Station>) => {
+      // Store just the station, state resets are handled in the station effect
       setSelectedStation(event.detail);
-      // Reset states when a new station is selected
-      setRetryCount(0);
-      setError(null);
     };
 
     const handleSearchQueryChanged = (event: CustomEvent<string>) => {
@@ -46,15 +44,23 @@ export default function SearchPage() {
    * with improved error handling and retry logic
    */
   const fetchArrivals = useCallback(async (stationId: string) => {
-    // If we've failed multiple times in a row, add a delay
-    const delayMs = retryCount > 2 ? 2000 : 0;
+    // Match API's MAX_RETRIES=2 setting
+    const MAX_CLIENT_RETRIES = 2;
+    
+    // If we've exceeded retries, don't attempt again automatically
+    if (retryCount >= MAX_CLIENT_RETRIES) {
+      return;
+    }
+    
+    // Add delay for retries
+    const delayMs = retryCount > 0 ? 2000 : 0;
     
     try {
       setLoading(true);
       // Don't clear error immediately to avoid UI flash if we're retrying
       if (retryCount === 0) setError(null);
       
-      // Add delay if we've had multiple failures
+      // Add delay if retrying
       if (delayMs > 0) {
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
@@ -78,22 +84,12 @@ export default function SearchPage() {
       });
       
       clearTimeout(timeoutId);
-      console.log('Arrivals API Response Status:', resp.status);
       
       if (!resp.ok) {
         throw new Error(`HTTP ${resp.status} – ${resp.statusText || 'Network error'}`);
       }
       
       const data = await resp.json();
-      console.log('Arrivals API Response:', {
-        dataExists: !!data,
-        stationCount: data.length,
-        firstStation: data[0] ? {
-          stationId: data[0].stationId,
-          stopCount: data[0].stops.length,
-          sampleArrival: data[0].stops[0]?.arrivals[0]
-        } : null
-      });
       
       setArrivals(data);
       setLastUpdated(new Date());
@@ -113,14 +109,13 @@ export default function SearchPage() {
         errorMessage = "Network error - please check your connection";
       }
       
-      setError(`${errorMessage}. ${retryCount > 0 ? `Retry attempt ${retryCount}` : ''}`);
-      setRetryCount(prev => prev + 1);
-      
-      // With manual refresh, we don't need to manage auto-refresh state
+      const newRetryCount = retryCount + 1;
+      setError(`${errorMessage}${newRetryCount <= MAX_CLIENT_RETRIES ? ` (Retry ${newRetryCount}/${MAX_CLIENT_RETRIES})` : ''}`);
+      setRetryCount(newRetryCount);
     } finally {
       setLoading(false);
     }
-  }, [retryCount]);
+  }, [retryCount, lastUpdated]);
 
   // Re-fetch arrivals for the selected station on demand
   function handleRefresh() {
@@ -131,33 +126,38 @@ export default function SearchPage() {
     }
   }
 
-  // Whenever user picks a station, fetch arrivals immediately
+  // Whenever user picks a station, fetch arrivals immediately - only once
   useEffect(() => {
     if (selectedStation?.stationId) {
+      // Reset states when a new station is selected
+      setArrivals([]);
+      setError(null);
+      setRetryCount(0);
+      setLastUpdated(null);
+      
+      // Then fetch data for the new station
       fetchArrivals(selectedStation.stationId);
     } else {
       setArrivals([]);
       setError(null);
       setLastUpdated(null);
     }
-  }, [selectedStation, fetchArrivals]);
-
-  // No auto-refresh - we're using manual refresh only
-  // We removed the auto-refresh interval to simplify the UX
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStation?.stationId]); // Only depend on the ID, not the whole object or fetchArrivals
 
   return (
-    <div className="h-full flex flex-col space-y-4">
-      {!selectedStation && (
-        <div className="mt-12 text-center space-y-2">
-          <h1 className="text-2xl font-bold">Find Your Station</h1>
-          <p className="text-sm text-muted-foreground">
-            Type to search for a station below
+    <div className="h-full flex flex-col">
+      {!selectedStation ? (
+        <div className="flex flex-col items-center justify-center h-full text-center px-6">
+          <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-6">
+            <Search className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2">Find Your Station</h1>
+          <p className="text-sm text-muted-foreground max-w-xs">
+          Type in the search bar below to find a station and view upcoming arrivals
           </p>
         </div>
-      )}
-
-      {/* Selected Station arrivals */}
-      {selectedStation && (
+      ) : (
         <ArrivalBoard
           arrivals={arrivals}
           loading={loading}

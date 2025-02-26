@@ -2,9 +2,9 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCcw, Clock, AlertCircle } from 'lucide-react';
+import { RefreshCcw, AlertCircle, MapPin, ArrowRight } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import type { RouteColor } from "@/lib/types/cta";
 import { ROUTE_COLORS } from "@/lib/types/cta";
@@ -161,142 +161,199 @@ export default function ArrivalBoard({
     // Clean up on unmount
     return () => clearInterval(intervalId);
   }, []);
+
+  // Process arrivals data to group by route first
+  const routeGroupedArrivals = React.useMemo(() => {
+    // Group arrivals by route
+    const routeGroups: Record<string, {
+      route: string,
+      arrivals: Arrival[],
+      stopNames: Set<string>
+    }> = {};
+    
+    arrivals.forEach((station: any) => {
+      station.stops.forEach((stop: any) => {
+        stop.arrivals.forEach((arrival: Arrival) => {
+          const route = arrival.rt;
+          
+          if (!routeGroups[route]) {
+            routeGroups[route] = {
+              route,
+              arrivals: [],
+              stopNames: new Set()
+            };
+          }
+          
+          routeGroups[route].arrivals.push({
+            ...arrival,
+            stpDe: stop.stopName // Use stop name for context
+          });
+          routeGroups[route].stopNames.add(stop.stopName);
+        });
+      });
+    });
+    
+    // Sort arrivals within each route by time
+    Object.values(routeGroups).forEach(group => {
+      group.arrivals.sort((a, b) => {
+        const aTime = parseCtaDate(a.arrT);
+        const bTime = parseCtaDate(b.arrT);
+        if (!aTime || !bTime) return 0;
+        return aTime.getTime() - bTime.getTime();
+      });
+    });
+    
+    return Object.values(routeGroups);
+  }, [arrivals]);
+
   return (
-    <div className="flex-1 overflow-y-auto px-4 pb-24">
-      <Card>
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-xl font-bold text-center">
-            {stationName}
-          </CardTitle>
-          <div className="flex items-center justify-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onRefresh}
-              disabled={loading}
-              className={loading ? "animate-spin" : ""}
-              aria-label="Refresh arrivals"
-            >
-              <RefreshCcw className="w-4 h-4" />
-            </Button>
-            
-            {lastUpdated && (
-              <div className="text-xs text-muted-foreground">
-                Updated {formatRelativeTime(lastUpdated, currentTime)}
-              </div>
-            )}
+    <div className="flex-1 overflow-y-auto pb-24">
+      {/* Station Header with Backdrop Blur */}
+      <div className="sticky top-0 z-10 backdrop-blur-sm bg-background/80 p-4 mb-4 flex items-center justify-between border-b">
+        <div className="flex items-center gap-2">
+          <MapPin className="w-5 h-5 text-muted-foreground" />
+          <h1 className="text-xl font-bold">{stationName}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          {lastUpdated && (
+            <span className="text-xs text-muted-foreground">
+              {formatRelativeTime(lastUpdated, currentTime)}
+            </span>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onRefresh}
+            disabled={loading}
+            className={loading ? "animate-spin" : ""}
+            aria-label="Refresh arrivals"
+          >
+            <RefreshCcw className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+      
+      {/* Error Message */}
+      {error && (
+        <div className="mx-4 mb-4 p-3 bg-destructive/10 text-destructive rounded-md flex items-start">
+          <AlertCircle className="w-4 h-4 mt-0.5 mr-2 flex-shrink-0" />
+          <p className="text-sm">{error}</p>
+        </div>
+      )}
+      
+      {/* Loading State */}
+      {loading && arrivals.length === 0 && !error && (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-pulse flex flex-col items-center">
+            <RefreshCcw className="w-6 h-6 text-muted-foreground animate-spin" />
+            <p className="mt-2 text-sm text-muted-foreground">Loading arrivals...</p>
           </div>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <div className="mb-4 p-3 bg-destructive/10 text-destructive rounded-md flex items-start">
-              <AlertCircle className="w-4 h-4 mt-0.5 mr-2 flex-shrink-0" />
-              <p className="text-sm">{error}</p>
-            </div>
-          )}
+        </div>
+      )}
+      
+      {/* Empty State */}
+      {arrivals.length === 0 && !error && !loading && (
+        <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+          <p className="text-muted-foreground mb-2">No arrival information available</p>
+          <Button variant="outline" size="sm" onClick={onRefresh} className="mt-2">
+            <RefreshCcw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
+      )}
+      
+      {/* Route-Grouped Arrivals */}
+      <div className="space-y-4 px-4">
+        {routeGroupedArrivals.map(({ route, arrivals, stopNames }) => {
+          const normalizedRoute = normalizeRouteColor(route);
+          const routeColorClass = ROUTE_COLORS[normalizedRoute] || "bg-gray-600";
+          const routeName = getFullLineName(route);
           
-          {arrivals.length === 0 && !error && !loading && (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              No arrival information available
-            </p>
-          )}
-          
-          {loading && arrivals.length === 0 && !error && (
-            <div className="flex justify-center items-center py-8">
-              <div className="animate-pulse flex flex-col items-center">
-                <RefreshCcw className="w-6 h-6 text-muted-foreground animate-spin" />
-                <p className="mt-2 text-sm text-muted-foreground">Loading arrivals...</p>
+          return (
+            <Card key={route} className="overflow-hidden">
+                              {/* Route Header */}
+              <div className={cn(
+                "px-4 py-3 flex items-center border-b",
+                routeColorClass.replace('bg-', 'bg-opacity-10 bg-')
+              )}>
+                <div className="flex items-center gap-2">
+                  <div className={cn("w-3 h-3 rounded-full", routeColorClass)} />
+                  <span className="font-semibold">{routeName} Line</span>
+                </div>
               </div>
-            </div>
-          )}
-          
-          {arrivals.map((stationInfo: any) => (
-            <div key={stationInfo.stationId} className="space-y-6">
-              {stationInfo.stops.map((stop: any) => {
-                const groupedByRoute: Record<string, Arrival[]> = {};
-                stop.arrivals.forEach((arr: Arrival) => {
-                  if (!groupedByRoute[arr.rt]) {
-                    groupedByRoute[arr.rt] = [];
-                  }
-                  groupedByRoute[arr.rt].push(arr);
-                });
-
-                return (
-                  <div key={stop.stopId} className="space-y-4">
-                    <h3 className="text-base font-semibold">
-                      {stop.stopName}
-                    </h3>
-                    {Object.entries(groupedByRoute).length === 0 && (
-                      <p className="text-sm text-muted-foreground">
-                        No upcoming arrivals
-                      </p>
-                    )}
-                    {Object.entries(groupedByRoute).map(([route, arrivalsArr]) => {
-                      const normalizedRoute = normalizeRouteColor(route);
-                      const computedClass = ROUTE_COLORS[normalizedRoute]?.replace('bg-', 'bg-opacity-10 bg-') || "bg-gray-100";
-
-                      return (
-                        <div
-                          key={route}
-                          className="border rounded-lg overflow-hidden bg-accent/50"
-                        >
-                          <div 
-                            className={cn(
-                              "px-3 py-2 flex items-center gap-2",
-                              computedClass
-                            )}
-                          >
-                            <div
-                              className={cn(
-                                "w-2 h-2 rounded-full",
-                                ROUTE_COLORS[normalizedRoute] || "bg-gray-600"
-                              )}
-                            />
-                            <span className="font-medium text-sm">{getFullLineName(route)}</span>
-                          </div>
-                          <div className="divide-y">
-                            {arrivalsArr.length > 0 ? (
-                              arrivalsArr.map((arrObj, i) => (
-                                <div 
-                                  key={i} 
-                                  className="px-3 py-2 flex items-center justify-between"
-                                >
-                                  <div className="flex flex-col">
-                                    <span className="font-medium text-sm">
-                                      {arrObj.destNm}
-                                    </span>
-                                    {arrObj.isDly === "1" && (
-                                      <span className="text-xs text-destructive font-medium">
-                                        Delayed
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className={cn(
-                                    "text-sm tabular-nums",
-                                    (arrObj.isApp === "1" || formatArrivalTime(arrObj, currentTime).startsWith('Due')) 
-                                      ? "text-destructive font-bold"
-                                      : "font-medium"
-                                  )}>
-                                    {formatArrivalTime(arrObj, currentTime)}
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="px-3 py-2 text-sm text-muted-foreground">
-                                No upcoming arrivals
-                              </p>
-                            )}
+              
+              {/* Arrivals List */}
+              <CardContent className="p-0 divide-y">
+                {arrivals.length > 0 ? (
+                  arrivals.map((arrival, idx) => {
+                    const isApproaching = arrival.isApp === "1";
+                    const isDelayed = arrival.isDly === "1";
+                    const arrivalText = formatArrivalTime(arrival, currentTime);
+                    const isDue = isApproaching || arrivalText.startsWith('Due');
+                    
+                    // Extract just the minutes for prominent display
+                    const minutesMatch = arrivalText.match(/^(\d+) min/);
+                    const minutes = minutesMatch ? minutesMatch[1] : null;
+                    
+                    // Extract the time for secondary display
+                    const timeMatch = arrivalText.match(/\((.+)\)/);
+                    const time = timeMatch ? timeMatch[1] : null;
+                    
+                    return (
+                                              <div 
+                        key={idx}
+                        className={cn(
+                          "px-4 py-3 flex items-center justify-between",
+                          isDelayed ? "bg-amber-500/5" : isDue ? "bg-destructive/5" : ""
+                        )}
+                      >
+                        {/* Left: Destination with Direction */}
+                        <div className="flex items-center gap-2">
+                          <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <div className="font-medium">{arrival.destNm}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {arrival.stpDe?.replace('Service toward ', '').replace('Platform', '')}
+                            </div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+                        
+                        {/* Right: Arrival Time */}
+                        <div className="flex flex-col items-end">
+                          {isDelayed && (
+                            <span className="text-xs font-semibold text-amber-600 flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" /> Delayed
+                            </span>
+                          )}
+                          
+                          {isDue ? (
+                            <span className="text-lg font-bold text-destructive">Due</span>
+                          ) : minutes ? (
+                            <span className="text-lg font-bold">{minutes}<span className="text-sm font-normal text-muted-foreground ml-1">min</span></span>
+                          ) : (
+                            <span className="text-lg font-bold">--</span>
+                          )}
+                          
+                          
+                          {time && (
+                            <span className="text-xs text-muted-foreground">
+                              {time}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="px-4 py-3 text-sm text-muted-foreground">
+                    No upcoming arrivals for this line
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
