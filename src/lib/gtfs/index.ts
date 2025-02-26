@@ -146,7 +146,7 @@ function transformStops(gtfsStops: GtfsStop[]): Station[] {
       const stationStop: StationStop = {
         stopId: stop.stop_id,
         stopName: stop.stop_name,  // ex: "Southport" or "Clark/Lake"
-        stopDesc: stop.stop_desc || 'N/A',
+        stopDesc: stop.stop_desc,
         directionName: directionNameCandidate,
         parentStationId: stop.parent_station,
         lat: Number.isNaN(latNum) ? 0 : latNum,
