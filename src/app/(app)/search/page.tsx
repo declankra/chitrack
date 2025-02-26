@@ -1,10 +1,11 @@
+// src/app/(app)/search/page.tsx
+
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useStations } from "@/lib/hooks/useStations";
 import type { Station } from "@/lib/types/cta";
 import ArrivalBoard from "./_components/ArrivalBoard";
-
 
 export default function SearchPage() {
   const { data: stations = [] } = useStations();
@@ -15,11 +16,15 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Listen for station selection events from NavigationDock
   useEffect(() => {
     const handleStationSelected = (event: CustomEvent<Station>) => {
       setSelectedStation(event.detail);
+      // Reset states when a new station is selected
+      setRetryCount(0);
+      setError(null);
     };
 
     const handleSearchQueryChanged = (event: CustomEvent<string>) => {
@@ -38,16 +43,45 @@ export default function SearchPage() {
 
   /**
    * Fetch arrivals from /api/cta/arrivals/station?stations=<stationId>
+   * with improved error handling and retry logic
    */
-  async function fetchArrivals(stationId: string) {
+  const fetchArrivals = useCallback(async (stationId: string) => {
+    // If we've failed multiple times in a row, add a delay
+    const delayMs = retryCount > 2 ? 2000 : 0;
+    
     try {
       setLoading(true);
-      setError(null);
-      const resp = await fetch(`/api/cta/arrivals/station?stations=${stationId}`);
+      // Don't clear error immediately to avoid UI flash if we're retrying
+      if (retryCount === 0) setError(null);
+      
+      // Add delay if we've had multiple failures
+      if (delayMs > 0) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+      
+      // Check if we have recently updated data (within last 30 seconds)
+      const isRecent = lastUpdated && (Date.now() - lastUpdated.getTime() < 30000);
+      
+      // Set custom headers to help the API determine caching strategy
+      const resp = await fetch(`/api/cta/arrivals/station?stations=${stationId}`, {
+        signal: controller.signal,
+        headers: {
+          'Cache-Control': 'no-cache', 
+          // Don't force a refresh if we just got data recently
+          'x-force-refresh': isRecent ? 'false' : 'true',
+          // We don't want background refreshes with manual refresh model
+          'x-allow-background': 'false'
+        }
+      });
+      
+      clearTimeout(timeoutId);
       console.log('Arrivals API Response Status:', resp.status);
       
       if (!resp.ok) {
-        throw new Error(`HTTP ${resp.status} – ${resp.statusText}`);
+        throw new Error(`HTTP ${resp.status} – ${resp.statusText || 'Network error'}`);
       }
       
       const data = await resp.json();
@@ -63,17 +97,36 @@ export default function SearchPage() {
       
       setArrivals(data);
       setLastUpdated(new Date());
+      setRetryCount(0); // Reset retry count on success
+      setError(null);
     } catch (err: any) {
       console.error('Error fetching arrivals:', err);
-      setError(err.message ?? "Error fetching arrivals");
+      
+      // Format a more user-friendly error message
+      let errorMessage = "Error fetching arrivals";
+      
+      if (err.name === 'AbortError') {
+        errorMessage = "Request timed out - please try again";
+      } else if (err.message?.includes('504')) {
+        errorMessage = "The server is taking too long to respond - please try again";
+      } else if (err.message?.includes('fetch')) {
+        errorMessage = "Network error - please check your connection";
+      }
+      
+      setError(`${errorMessage}. ${retryCount > 0 ? `Retry attempt ${retryCount}` : ''}`);
+      setRetryCount(prev => prev + 1);
+      
+      // With manual refresh, we don't need to manage auto-refresh state
     } finally {
       setLoading(false);
     }
-  }
+  }, [retryCount]);
 
   // Re-fetch arrivals for the selected station on demand
   function handleRefresh() {
     if (selectedStation?.stationId) {
+      // Reset error state and retry count when manually refreshing
+      setRetryCount(0);
       fetchArrivals(selectedStation.stationId);
     }
   }
@@ -87,7 +140,10 @@ export default function SearchPage() {
       setError(null);
       setLastUpdated(null);
     }
-  }, [selectedStation]);
+  }, [selectedStation, fetchArrivals]);
+
+  // No auto-refresh - we're using manual refresh only
+  // We removed the auto-refresh interval to simplify the UX
 
   return (
     <div className="h-full flex flex-col space-y-4">

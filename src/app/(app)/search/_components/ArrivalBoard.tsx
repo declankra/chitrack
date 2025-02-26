@@ -1,10 +1,10 @@
 // src/app/(app)/search/_components/ArrivalBoard.tsx
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCcw, Clock } from 'lucide-react';
+import { RefreshCcw, Clock, AlertCircle } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import type { RouteColor } from "@/lib/types/cta";
 import { ROUTE_COLORS } from "@/lib/types/cta";
@@ -30,9 +30,9 @@ interface ArrivalBoardProps {
 /**
  * Format relative time in minutes
  */
-function formatRelativeTime(date: Date | null): string {
+function formatRelativeTime(date: Date | null, currentTime: Date): string {
   if (!date) return '';
-  const diffMs = Date.now() - date.getTime();
+  const diffMs = currentTime.getTime() - date.getTime();
   const diffMins = Math.round(diffMs / 60000);
   
   if (diffMins < 1) return 'just now';
@@ -43,51 +43,41 @@ function formatRelativeTime(date: Date | null): string {
  * Convert either a CTA arrival time string "YYYYMMDD HH:mm:ss" or ISO-8601 date string into a JS Date
  */
 function parseCtaDate(ctaTime: string): Date | null {
-  console.log('Parsing CTA date:', { ctaTime });
-  
-  // Handle ISO-8601 format (e.g. "2025-02-18T12:43:48")
-  if (ctaTime.includes('T')) {
-    const d = new Date(ctaTime);
-    console.log('Parsed ISO date result:', {
-      input: ctaTime,
-      parsed: d.toISOString(),
-      isValid: !Number.isNaN(d.getTime())
-    });
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-  
-  // Handle CTA custom format ("YYYYMMDD HH:mm:ss")
-  if (!ctaTime || !ctaTime.includes(" ")) {
-    console.log('Invalid CTA date format - missing space separator');
-    return null;
-  }
-  
-  const [datePart, timePart] = ctaTime.split(" ");
-  if (!datePart || !timePart) {
-    console.log('Invalid CTA date format - missing date or time part');
-    return null;
-  }
-  
-  const year = +datePart.slice(0, 4);
-  const month = +datePart.slice(4, 6) - 1;
-  const day = +datePart.slice(6, 8);
-  const [hour, minute, second] = timePart.split(":").map(Number);
+  try {
+    // Handle ISO-8601 format (e.g. "2025-02-18T12:43:48")
+    if (ctaTime.includes('T')) {
+      const d = new Date(ctaTime);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    
+    // Handle CTA custom format ("YYYYMMDD HH:mm:ss")
+    if (!ctaTime || !ctaTime.includes(" ")) {
+      return null;
+    }
+    
+    const [datePart, timePart] = ctaTime.split(" ");
+    if (!datePart || !timePart) {
+      return null;
+    }
+    
+    const year = +datePart.slice(0, 4);
+    const month = +datePart.slice(4, 6) - 1;
+    const day = +datePart.slice(6, 8);
+    const [hour, minute, second] = timePart.split(":").map(Number);
 
-  const d = new Date(year, month, day, hour, minute, second);
-  console.log('Parsed CTA custom format result:', {
-    input: ctaTime,
-    parsed: d.toISOString(),
-    isValid: !Number.isNaN(d.getTime())
-  });
-  return Number.isNaN(d.getTime()) ? null : d;
+    const d = new Date(year, month, day, hour, minute, second);
+    return Number.isNaN(d.getTime()) ? null : d;
+  } catch (err) {
+    console.error("Error parsing CTA date:", err);
+    return null;
+  }
 }
 
 /**
  * Helper to format arrival time as "Due (hh:mm AM/PM)" or "8 min (hh:mm AM/PM)"
  * If isApp === "1", returns "Due"
  */
-function formatArrivalTime(arrival: Arrival) {
-  const now = new Date();
+function formatArrivalTime(arrival: Arrival, currentTime: Date) {
   const arrTime = parseCtaDate(arrival.arrT);
 
   if (!arrTime) {
@@ -99,7 +89,7 @@ function formatArrivalTime(arrival: Arrival) {
     return `Due (${arrTime.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })})`;
   }
 
-  const diffMs = arrTime.getTime() - now.getTime();
+  const diffMs = arrTime.getTime() - currentTime.getTime();
   const diffMin = Math.round(diffMs / 60000);
 
   if (diffMin <= 0) {
@@ -155,9 +145,22 @@ export default function ArrivalBoard({
   onRefresh,
   stationName
 }: ArrivalBoardProps) {
-  // Add debug logging for ROUTE_COLORS
-  console.log("ROUTE_COLORS:", ROUTE_COLORS);
+  // Use a state variable to track current time for UI updates
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
+  // Set up a timer to update the display every minute
+  useEffect(() => {
+    // Update immediately to sync with real time
+    setCurrentTime(new Date());
+    
+    // Set interval to update every minute
+    const intervalId = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // 60 seconds = 1 minute
+    
+    // Clean up on unmount
+    return () => clearInterval(intervalId);
+  }, []);
   return (
     <div className="flex-1 overflow-y-auto px-4 pb-24">
       <Card>
@@ -176,22 +179,37 @@ export default function ArrivalBoard({
             >
               <RefreshCcw className="w-4 h-4" />
             </Button>
+            
             {lastUpdated && (
               <div className="text-xs text-muted-foreground">
-                Updated {formatRelativeTime(lastUpdated)}
+                Updated {formatRelativeTime(lastUpdated, currentTime)}
               </div>
             )}
           </div>
         </CardHeader>
         <CardContent>
           {error && (
-            <p className="text-sm text-destructive mb-2">{error}</p>
+            <div className="mb-4 p-3 bg-destructive/10 text-destructive rounded-md flex items-start">
+              <AlertCircle className="w-4 h-4 mt-0.5 mr-2 flex-shrink-0" />
+              <p className="text-sm">{error}</p>
+            </div>
           )}
-          {arrivals.length === 0 && !error && (
-            <p className="text-sm text-muted-foreground">
-              Loading arrivals or no data...
+          
+          {arrivals.length === 0 && !error && !loading && (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No arrival information available
             </p>
           )}
+          
+          {loading && arrivals.length === 0 && !error && (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-pulse flex flex-col items-center">
+                <RefreshCcw className="w-6 h-6 text-muted-foreground animate-spin" />
+                <p className="mt-2 text-sm text-muted-foreground">Loading arrivals...</p>
+              </div>
+            </div>
+          )}
+          
           {arrivals.map((stationInfo: any) => (
             <div key={stationInfo.stationId} className="space-y-6">
               {stationInfo.stops.map((stop: any) => {
@@ -208,17 +226,14 @@ export default function ArrivalBoard({
                     <h3 className="text-base font-semibold">
                       {stop.stopName}
                     </h3>
+                    {Object.entries(groupedByRoute).length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        No upcoming arrivals
+                      </p>
+                    )}
                     {Object.entries(groupedByRoute).map(([route, arrivalsArr]) => {
                       const normalizedRoute = normalizeRouteColor(route);
-                      
-                      // Add debug logging for route color mapping
-                      console.log("Original Route:", route);
-                      console.log("Normalized Route:", normalizedRoute);
-                      console.log("Mapped Color:", ROUTE_COLORS[normalizedRoute]);
-                      
-                      // Add debug logging for computed class
                       const computedClass = ROUTE_COLORS[normalizedRoute]?.replace('bg-', 'bg-opacity-10 bg-') || "bg-gray-100";
-                      console.log("Computed class:", computedClass);
 
                       return (
                         <div
@@ -258,11 +273,11 @@ export default function ArrivalBoard({
                                   </div>
                                   <div className={cn(
                                     "text-sm tabular-nums",
-                                    (arrObj.isApp === "1" || formatArrivalTime(arrObj).startsWith('Due')) 
+                                    (arrObj.isApp === "1" || formatArrivalTime(arrObj, currentTime).startsWith('Due')) 
                                       ? "text-destructive font-bold"
                                       : "font-medium"
                                   )}>
-                                    {formatArrivalTime(arrObj)}
+                                    {formatArrivalTime(arrObj, currentTime)}
                                   </div>
                                 </div>
                               ))
