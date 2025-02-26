@@ -10,21 +10,37 @@ export const dynamic = 'force-dynamic';
 const CTA_API_KEY = process.env.CTA_TRAIN_API_KEY
 
 /**
- * Helper to parse "YYYYMMDD HH:mm:ss" and return a numerical timestamp.
+ * Helper to parse arrival time strings and return a numerical timestamp.
+ * Handles both CTA format "YYYYMMDD HH:mm:ss" and ISO 8601 format "YYYY-MM-DDThh:mm:ss"
  * If parsing fails, returns Infinity so sorting still works.
  */
-function parseArrivalTime(ctaTime: string): number {
-  // Example format: "20230609 12:34:56"
-  const [datePart, timePart] = ctaTime.split(" ")
-  if (!datePart || !timePart) return Infinity
-  const year = +datePart.slice(0, 4)
-  const month = +datePart.slice(4, 6) - 1 // zero-based
-  const day = +datePart.slice(6, 8)
+function parseArrivalTime(timeStr: string): number {
+  try {
+    // Check if the string is in ISO 8601 format (contains 'T' and possibly 'Z')
+    if (timeStr.includes('T')) {
+      const date = new Date(timeStr);
+      if (!isNaN(date.getTime())) {
+        return date.getTime();
+      }
+    }
+    
+    // Handle CTA format "YYYYMMDD HH:mm:ss"
+    const [datePart, timePart] = timeStr.split(" ");
+    if (!datePart || !timePart) return Infinity;
+    
+    const year = +datePart.slice(0, 4);
+    const month = +datePart.slice(4, 6) - 1; // zero-based
+    const day = +datePart.slice(6, 8);
 
-  const [hour, minute, second] = timePart.split(":").map((x) => +x)
-  const parsedDate = new Date(year, month, day, hour, minute, second)
-  if (Number.isNaN(parsedDate.getTime())) return Infinity
-  return parsedDate.getTime()
+    const [hour, minute, second] = timePart.split(":").map((x) => +x);
+    const parsedDate = new Date(year, month, day, hour, minute, second);
+    
+    if (Number.isNaN(parsedDate.getTime())) return Infinity;
+    return parsedDate.getTime();
+  } catch (error) {
+    console.warn("Error parsing arrival time:", timeStr, error);
+    return Infinity;
+  }
 }
 
 /**

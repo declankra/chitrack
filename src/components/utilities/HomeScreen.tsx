@@ -26,22 +26,30 @@ const getGreeting = () => {
 
 /**
  * Format CTA arrival time to user-friendly display
- * @param arrivalTime CTA arrival time in "YYYYMMDD HH:mm:ss" format
+ * @param arrivalTime CTA arrival time in "YYYYMMDD HH:mm:ss" or ISO 8601 format "YYYY-MM-DDThh:mm:ss"
  * @param isApproaching Whether train is approaching (isApp="1")
  * @param isDelayed Whether train is delayed (isDly="1")
  */
 const formatArrivalTime = (arrivalTime: string, isApproaching: boolean, isDelayed: boolean) => {
   try {
-    // Parse CTA date format "YYYYMMDD HH:mm:ss"
-    const [datePart, timePart] = arrivalTime.split(' ');
-    if (!datePart || !timePart) return 'N/A';
+    let arrTime: Date;
     
-    const year = +datePart.slice(0, 4);
-    const month = +datePart.slice(4, 6) - 1; // zero-based
-    const day = +datePart.slice(6, 8);
-    const [hour, minute] = timePart.split(':').map(Number);
+    // Check if the string is in ISO 8601 format (contains 'T')
+    if (arrivalTime.includes('T')) {
+      arrTime = new Date(arrivalTime);
+    } else {
+      // Parse CTA date format "YYYYMMDD HH:mm:ss"
+      const [datePart, timePart] = arrivalTime.split(' ');
+      if (!datePart || !timePart) return 'N/A';
+      
+      const year = +datePart.slice(0, 4);
+      const month = +datePart.slice(4, 6) - 1; // zero-based
+      const day = +datePart.slice(6, 8);
+      const [hour, minute] = timePart.split(':').map(Number);
+      
+      arrTime = new Date(year, month, day, hour, minute);
+    }
     
-    const arrTime = new Date(year, month, day, hour, minute);
     const now = new Date();
     
     // If invalid date, return placeholder
