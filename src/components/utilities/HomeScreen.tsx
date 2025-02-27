@@ -1,7 +1,7 @@
 // src/components/utilities/HomeScreen.tsx
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useStations } from '@/lib/hooks/useStations';
 import { useQuery } from '@tanstack/react-query';
 import { getSupabase } from '@/lib/supabase';
-import { Train, MapPin, RefreshCw, Clock, Star, Settings, AlertCircle } from 'lucide-react';
+import { House, MapPin, RefreshCw, Clock, Star, Settings, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Station, StationStop, RouteColor } from '@/lib/types/cta';
 import { ROUTE_COLORS } from '@/lib/types/cta';
@@ -25,44 +25,92 @@ const getGreeting = () => {
 };
 
 /**
+ * Format the relative time since last update
+ * @param date Last updated timestamp
+ * @param currentTime Current time
+ */
+const formatRelativeTime = (date: Date | null, currentTime: Date): string => {
+  if (!date) return '';
+  const diffMs = currentTime.getTime() - date.getTime();
+  const diffMins = Math.round(diffMs / 60000);
+  
+  if (diffMins < 1) return 'just now';
+  return `${diffMins}m ago`;
+};
+
+/**
+ * Parse CTA arrival time to a Date object
+ * @param ctaTime CTA arrival time in "YYYYMMDD HH:mm:ss" or ISO 8601 format
+ */
+const parseCtaDate = (ctaTime: string): Date | null => {
+  try {
+    // Handle ISO-8601 format (e.g. "2025-02-18T12:43:48")
+    if (ctaTime.includes('T')) {
+      const d = new Date(ctaTime);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    
+    // Handle CTA custom format ("YYYYMMDD HH:mm:ss")
+    if (!ctaTime || !ctaTime.includes(" ")) {
+      return null;
+    }
+    
+    const [datePart, timePart] = ctaTime.split(" ");
+    if (!datePart || !timePart) {
+      return null;
+    }
+    
+    const year = +datePart.slice(0, 4);
+    const month = +datePart.slice(4, 6) - 1;
+    const day = +datePart.slice(6, 8);
+    const [hour, minute, second] = timePart.split(":").map(Number);
+
+    const d = new Date(year, month, day, hour, minute, second);
+    return Number.isNaN(d.getTime()) ? null : d;
+  } catch (err) {
+    console.error("Error parsing CTA date:", err);
+    return null;
+  }
+};
+
+/**
  * Format CTA arrival time to user-friendly display
- * @param arrivalTime CTA arrival time in "YYYYMMDD HH:mm:ss" or ISO 8601 format "YYYY-MM-DDThh:mm:ss"
+ * @param arrivalTime CTA arrival time in "YYYYMMDD HH:mm:ss" or ISO 8601 format
  * @param isApproaching Whether train is approaching (isApp="1")
  * @param isDelayed Whether train is delayed (isDly="1")
  */
 const formatArrivalTime = (arrivalTime: string, isApproaching: boolean, isDelayed: boolean) => {
   try {
-    let arrTime: Date;
-    
-    // Check if the string is in ISO 8601 format (contains 'T')
-    if (arrivalTime.includes('T')) {
-      arrTime = new Date(arrivalTime);
-    } else {
-      // Parse CTA date format "YYYYMMDD HH:mm:ss"
-      const [datePart, timePart] = arrivalTime.split(' ');
-      if (!datePart || !timePart) return 'N/A';
-      
-      const year = +datePart.slice(0, 4);
-      const month = +datePart.slice(4, 6) - 1; // zero-based
-      const day = +datePart.slice(6, 8);
-      const [hour, minute] = timePart.split(':').map(Number);
-      
-      arrTime = new Date(year, month, day, hour, minute);
-    }
-    
+    const arrTime = parseCtaDate(arrivalTime);
     const now = new Date();
     
     // If invalid date, return placeholder
-    if (isNaN(arrTime.getTime())) return 'N/A';
+    if (!arrTime) return 'N/A';
     
     // If the train is approaching
     if (isApproaching) {
-      return 'Due';
+      return (
+        <div className="flex flex-col items-end">
+          <span className="text-lg font-bold text-destructive">Due</span>
+          <span className="text-xs text-muted-foreground">
+            {arrTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+          </span>
+        </div>
+      );
     }
     
     // If the train is delayed
     if (isDelayed) {
-      return <span className="text-amber-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Delayed</span>;
+      return (
+        <div className="flex flex-col items-end">
+          <span className="text-amber-500 flex items-center gap-1 font-medium">
+            <AlertCircle className="w-3 h-3" /> Delayed
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {arrTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+          </span>
+        </div>
+      );
     }
     
     // Calculate minutes until arrival
@@ -70,14 +118,26 @@ const formatArrivalTime = (arrivalTime: string, isApproaching: boolean, isDelaye
     const diffMin = Math.round(diffMs / 60000);
     
     if (diffMin <= 0) {
-      return 'Due';
+      return (
+        <div className="flex flex-col items-end">
+          <span className="text-lg font-bold text-destructive">Due</span>
+          <span className="text-xs text-muted-foreground">
+            {arrTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+          </span>
+        </div>
+      );
     }
     
     return (
-      <span className="flex items-baseline gap-1">
-        <span className="font-semibold">{diffMin}</span>
-        <span className="text-xs text-muted-foreground">min</span>
-      </span>
+      <div className="flex flex-col items-end">
+        <span className="flex items-baseline gap-1">
+          <span className="text-lg font-bold">{diffMin}</span>
+          <span className="text-sm font-normal text-muted-foreground">min</span>
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {arrTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+        </span>
+      </div>
     );
   } catch (err) {
     console.error('Error formatting arrival time:', err);
@@ -96,6 +156,26 @@ export default function HomeScreen() {
     homeStop: '',
     favoriteStops: [],
   });
+  
+  // State to track last data refresh times
+  const [homeStopLastUpdated, setHomeStopLastUpdated] = useState<Date | null>(null);
+  const [favoriteStopsLastUpdated, setFavoriteStopsLastUpdated] = useState<Date | null>(null);
+  // Current time for relative time display - updates every minute
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  
+  // Set up a timer to update the current time display every minute
+  useEffect(() => {
+    // Update immediately to sync with real time
+    setCurrentTime(new Date());
+    
+    // Set interval to update every minute
+    const intervalId = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // 60 seconds = 1 minute
+    
+    // Clean up on unmount
+    return () => clearInterval(intervalId);
+  }, []);
   
   // Fetch user data from Supabase
   const fetchUserData = useCallback(async () => {
@@ -178,7 +258,8 @@ export default function HomeScreen() {
     data: homeStopArrivals,
     isLoading: homeStopLoading,
     error: homeStopError,
-    refetch: refetchHomeStop
+    refetch: refetchHomeStop,
+    dataUpdatedAt: homeStopUpdatedAt
   } = useQuery({
     queryKey: ['homeStopArrivals', userData.homeStop],
     queryFn: async () => {
@@ -207,6 +288,9 @@ export default function HomeScreen() {
         
         console.log(`Home stop data: Cache ${cacheStatus}, Age: ${cacheAge}s, Fresh: ${isFresh}`);
         
+        // Set last updated time
+        setHomeStopLastUpdated(new Date());
+        
         const data = await response.json();
         return data as ArrivalInfo;
       } catch (error) {
@@ -224,7 +308,8 @@ export default function HomeScreen() {
     data: favoriteStopsArrivals,
     isLoading: favoriteStopsLoading,
     error: favoriteStopsError,
-    refetch: refetchFavoriteStops
+    refetch: refetchFavoriteStops,
+    dataUpdatedAt: favoriteStopsUpdatedAt
   } = useQuery<FavoriteStopsArrivalsType>({
     queryKey: ['favoriteStopsArrivals', userData.favoriteStops],
     queryFn: async () => {
@@ -262,6 +347,9 @@ export default function HomeScreen() {
           })
         );
         
+        // Update last updated timestamp
+        setFavoriteStopsLastUpdated(new Date());
+        
         return results;
       } catch (error) {
         console.error('Error fetching favorite stops arrivals:', error);
@@ -276,6 +364,16 @@ export default function HomeScreen() {
   // Function to handle manual refresh of all data
   const handleManualRefresh = () => {
     refetchHomeStop();
+    refetchFavoriteStops();
+  };
+  
+  // Function to handle manual refresh of home stop only
+  const handleHomeStopRefresh = () => {
+    refetchHomeStop();
+  };
+  
+  // Function to handle manual refresh of favorite stops only
+  const handleFavoriteStopsRefresh = () => {
     refetchFavoriteStops();
   };
   
@@ -312,14 +410,21 @@ export default function HomeScreen() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Train className="h-4 w-4 text-muted-foreground" />
+              <House className="h-5 w-5 text-muted-foreground" />
               <h2 className="text-lg font-medium">Home Stop</h2>
             </div>
-            {homeStop && (
-              <Button variant="ghost" size="sm" onClick={() => refetchHomeStop()} disabled={homeStopLoading}>
-                <RefreshCw className={cn("h-4 w-4", { "animate-spin": homeStopLoading })} />
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {homeStopLastUpdated && (
+                <span className="text-xs text-muted-foreground">
+                  {formatRelativeTime(homeStopLastUpdated, currentTime)}
+                </span>
+              )}
+              {homeStop && (
+                <Button variant="ghost" size="sm" onClick={handleHomeStopRefresh} disabled={homeStopLoading}>
+                  <RefreshCw className={cn("h-4 w-4", { "animate-spin": homeStopLoading })} />
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -363,9 +468,7 @@ export default function HomeScreen() {
                           <p className="font-medium">{arrival.destNm}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        {formatArrivalTime(arrival.arrT, arrival.isApp === "1", arrival.isDly === "1")}
-                      </div>
+                      {formatArrivalTime(arrival.arrT, arrival.isApp === "1", arrival.isDly === "1")}
                     </div>
                   ))}
                 </div>
@@ -392,14 +495,21 @@ export default function HomeScreen() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Star className="h-4 w-4 text-muted-foreground" />
+              <Star className="h-5 w-5 text-muted-foreground" />
               <h2 className="text-lg font-medium">Favorite Stops</h2>
             </div>
-            {favoriteStops.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={() => refetchFavoriteStops()} disabled={favoriteStopsLoading}>
-                <RefreshCw className={cn("h-4 w-4", { "animate-spin": favoriteStopsLoading })} />
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {favoriteStopsLastUpdated && (
+                <span className="text-xs text-muted-foreground">
+                  {formatRelativeTime(favoriteStopsLastUpdated, currentTime)}
+                </span>
+              )}
+              {favoriteStops.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={handleFavoriteStopsRefresh} disabled={favoriteStopsLoading}>
+                  <RefreshCw className={cn("h-4 w-4", { "animate-spin": favoriteStopsLoading })} />
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -451,9 +561,7 @@ export default function HomeScreen() {
                                 <p className="font-medium text-sm">{arrival.destNm}</p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              {formatArrivalTime(arrival.arrT, arrival.isApp === "1", arrival.isDly === "1")}
-                            </div>
+                            {formatArrivalTime(arrival.arrT, arrival.isApp === "1", arrival.isDly === "1")}
                           </div>
                         ))}
                       </div>
