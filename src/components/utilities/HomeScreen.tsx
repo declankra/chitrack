@@ -173,7 +173,7 @@ export default function HomeScreen() {
   const homeStop = homeStopDetails();
   const favoriteStops = favoriteStopsDetails();
   
-  // Fetch arrivals for home stop
+  // Fetch arrivals for home stop with improved headers
   const {
     data: homeStopArrivals,
     isLoading: homeStopLoading,
@@ -185,9 +185,30 @@ export default function HomeScreen() {
       if (!userData.homeStop) return null;
       
       try {
-        const response = await fetch(`/api/cta/arrivals/stop?stopId=${userData.homeStop}`);
-        if (!response.ok) throw new Error('Failed to fetch home stop arrivals');
-        return await response.json() as ArrivalInfo;
+        // Set custom headers to help the API determine caching strategy
+        const response = await fetch(`/api/cta/arrivals/stop?stopId=${userData.homeStop}`, {
+          headers: {
+            'Cache-Control': 'no-cache', 
+            // Force refresh when explicitly requested by the user
+            'x-force-refresh': 'true',
+            // Enable background refresh for automatic updates
+            'x-allow-background': 'true'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} – ${response.statusText || 'Network error'}`);
+        }
+        
+        // Check cache status from response headers
+        const cacheStatus = response.headers.get('X-Cache');
+        const cacheAge = response.headers.get('X-Cache-Age');
+        const isFresh = response.headers.get('X-Cache-Fresh') === 'true';
+        
+        console.log(`Home stop data: Cache ${cacheStatus}, Age: ${cacheAge}s, Fresh: ${isFresh}`);
+        
+        const data = await response.json();
+        return data as ArrivalInfo;
       } catch (error) {
         console.error('Error fetching home stop arrivals:', error);
         throw error;
@@ -198,7 +219,7 @@ export default function HomeScreen() {
     staleTime: 15000, // Consider data fresh for 15 seconds
   });
   
-  // Fetch arrivals for favorite stops
+  // Fetch arrivals for favorite stops with improved headers
   const {
     data: favoriteStopsArrivals,
     isLoading: favoriteStopsLoading,
@@ -217,10 +238,26 @@ export default function HomeScreen() {
           userData.favoriteStops.map(async (stopId) => {
             if (!stopId) return;
             
-            const response = await fetch(`/api/cta/arrivals/stop?stopId=${stopId}`);
-            if (!response.ok) throw new Error(`Failed to fetch arrivals for stop ${stopId}`);
+            const response = await fetch(`/api/cta/arrivals/stop?stopId=${stopId}`, {
+              headers: {
+                'Cache-Control': 'no-cache',
+                'x-force-refresh': 'true',
+                'x-allow-background': 'true'
+              }
+            });
             
-            const data = await response.json() as ArrivalInfo;
+            if (!response.ok) {
+              throw new Error(`Failed to fetch arrivals for stop ${stopId}`);
+            }
+            
+            // Check cache status from response headers
+            const cacheStatus = response.headers.get('X-Cache');
+            const cacheAge = response.headers.get('X-Cache-Age');
+            const isFresh = response.headers.get('X-Cache-Fresh') === 'true';
+            
+            console.log(`Favorite stop ${stopId} data: Cache ${cacheStatus}, Age: ${cacheAge}s, Fresh: ${isFresh}`);
+            
+            const data = await response.json();
             results[stopId] = data;
           })
         );
@@ -235,6 +272,12 @@ export default function HomeScreen() {
     refetchInterval: 30000, // Refresh every 30 seconds
     staleTime: 15000, // Consider data fresh for 15 seconds
   });
+  
+  // Function to handle manual refresh of all data
+  const handleManualRefresh = () => {
+    refetchHomeStop();
+    refetchFavoriteStops();
+  };
   
   // Function to render route color indicator
   const RouteIndicator = ({ route }: { route: string }) => {
