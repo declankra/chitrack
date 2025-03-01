@@ -75,19 +75,19 @@ const ArrivalBottomSheet: React.FC<ArrivalBottomSheetProps> = ({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop for clicking away */}
+          {/* Backdrop for clicking away - changed from fixed to absolute */}
           <motion.div
-            className="fixed inset-0 bg-black/20 z-40"
+            className="absolute inset-0 bg-black/20 z-40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
           />
           
-          {/* Bottom Sheet */}
+          {/* Bottom Sheet - changed from fixed to absolute and added w-full */}
           <motion.div
             ref={sheetRef}
-            className="fixed left-0 right-0 bottom-0 z-50 bg-background rounded-t-xl shadow-lg overflow-hidden"
+            className="absolute left-0 right-0 bottom-0 z-50 w-full bg-background rounded-t-xl shadow-lg overflow-hidden"
             initial={{ height: 0 }}
             animate={{ height: sheetHeight }}
             exit={{ height: 0 }}
