@@ -1,7 +1,7 @@
 // src/app/(app)/layout.tsx
 'use client';
 
-import NavigationDock from '@/components/utilities/NavigationDock';
+import NavigationDock from '@/components/shared/NavigationDock';
 import { usePathname } from 'next/navigation';
 import { StationsProvider } from '@/lib/providers/StationsProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

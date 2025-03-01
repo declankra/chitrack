@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useStations } from "@/lib/hooks/useStations";
 import type { Station } from "@/lib/types/cta";
-import ArrivalBoard from "./_components/ArrivalBoard";
+import ArrivalBoard from "../../../components/search/ArrivalBoard";
 import { Search, RefreshCw } from "lucide-react";
 
 export default function SearchPage() {

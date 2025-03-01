@@ -8,8 +8,8 @@ import { useStations } from "@/lib/hooks/useStations";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Settings, AlertCircle, X, MapPin } from "lucide-react";
-import FeedbackDialog from "@/components/utilities/FeedbackDialog";
-import StopSelectorModal from "@/components/utilities/StopSelectorModal";
+import FeedbackDialog from "@/components/shared/FeedbackDialog";
+import StopSelectorModal from "@/components/shared/StopSelectorModal";
 import { Station, StationStop } from "@/lib/types/cta";
 import type { UserData } from "@/lib/types/user";
 
