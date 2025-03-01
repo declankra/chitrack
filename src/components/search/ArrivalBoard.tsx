@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCcw, AlertCircle, MapPin, ArrowRight } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import { useRefreshAnimation } from '@/lib/hooks/useRefreshAnimation';
 import type { Arrival } from "@/lib/types/cta";
 import RouteIndicator, { getFullLineName, getRouteBackgroundClass } from '@/components/shared/RouteIndicator';
 import { formatRelativeTime, parseCtaDate, formatTimeDisplay } from '@/lib/utilities/timeUtils';
@@ -96,6 +97,9 @@ export default function ArrivalBoard({
 }: ArrivalBoardProps) {
   // Use a state variable to track current time for UI updates
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  
+  // Animation state for refresh button
+  const { isAnimating, triggerAnimation } = useRefreshAnimation();
 
   // Set up a timer to update the display every minute
   useEffect(() => {
@@ -110,6 +114,12 @@ export default function ArrivalBoard({
     // Clean up on unmount
     return () => clearInterval(intervalId);
   }, []);
+  
+  // Handle refresh with animation
+  const handleRefresh = () => {
+    triggerAnimation();
+    onRefresh();
+  };
 
   // Process arrivals data to group by route first
   const routeGroupedArrivals = useMemo(() => {
@@ -172,12 +182,11 @@ export default function ArrivalBoard({
           <Button
             variant="ghost"
             size="icon"
-            onClick={onRefresh}
+            onClick={handleRefresh}
             disabled={loading}
-            className={loading ? "animate-spin" : ""}
             aria-label="Refresh arrivals"
           >
-            <RefreshCcw className="w-4 h-4" />
+            <RefreshCcw className={cn("w-4 h-4", { "animate-spin": loading || isAnimating })} />
           </Button>
         </div>
       </div>
@@ -204,8 +213,8 @@ export default function ArrivalBoard({
       {arrivals.length === 0 && !error && !loading && (
         <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
           <p className="text-muted-foreground mb-2">No arrival information available</p>
-          <Button variant="outline" size="sm" onClick={onRefresh} className="mt-2">
-            <RefreshCcw className="w-4 h-4 mr-2" />
+          <Button variant="outline" size="sm" onClick={handleRefresh} className="mt-2">
+            <RefreshCcw className={cn("w-4 h-4 mr-2", { "animate-spin": isAnimating })} />
             Refresh
           </Button>
         </div>

@@ -8,6 +8,7 @@ import FavoriteStopCard from './FavoriteStopCard';
 import { formatRelativeTime } from '@/lib/utilities/timeUtils';
 import { findStopsByIds } from '@/lib/utilities/findStop';
 import { useMultipleStopArrivals } from '@/lib/hooks/useStopArrivals';
+import { useRefreshAnimation } from '@/lib/hooks/useRefreshAnimation';
 import type { Station } from '@/lib/types/cta';
 
 interface FavoriteSectionProps {
@@ -39,6 +40,9 @@ export const FavoriteSection: React.FC<FavoriteSectionProps> = ({
     { enabled: favoriteStopIds.length > 0 }
   );
   
+  // Animation state for refresh button
+  const { isAnimating, triggerAnimation } = useRefreshAnimation();
+  
   // Update current time every minute
   React.useEffect(() => {
     const intervalId = setInterval(() => {
@@ -50,6 +54,7 @@ export const FavoriteSection: React.FC<FavoriteSectionProps> = ({
   
   // Handle manual refresh
   const handleRefresh = () => {
+    triggerAnimation();
     refetchFavoriteStops();
   };
   
@@ -75,7 +80,7 @@ export const FavoriteSection: React.FC<FavoriteSectionProps> = ({
                 disabled={favoriteStopsLoading}
                 aria-label="Refresh all favorite stops"
               >
-                <RefreshCw className={cn("h-4 w-4", { "animate-spin": favoriteStopsLoading })} />
+                <RefreshCw className={cn("h-4 w-4", { "animate-spin": favoriteStopsLoading || isAnimating })} />
               </Button>
             )}
           </div>

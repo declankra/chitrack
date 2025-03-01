@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import RouteIndicator from '@/components/shared/RouteIndicator';
 import { useStopArrivals } from '@/lib/hooks/useStopArrivals';
+import { useRefreshAnimation } from '@/lib/hooks/useRefreshAnimation';
 import { formatRelativeTime, parseCtaDate, formatTimeDisplay } from '@/lib/utilities/timeUtils';
 import { findStopById } from '@/lib/utilities/findStop';
 import type { Station, Arrival } from '@/lib/types/cta';
@@ -105,6 +106,9 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
     lastUpdated: homeStopLastUpdated
   } = useStopArrivals(homeStopId, { enabled: !!homeStopId });
   
+  // Animation state for refresh button
+  const { isAnimating, triggerAnimation } = useRefreshAnimation();
+  
   // Update current time every minute
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -113,6 +117,12 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
     
     return () => clearInterval(intervalId);
   }, []);
+  
+  // Handle refresh with animation
+  const handleRefresh = () => {
+    triggerAnimation();
+    refetchHomeStop();
+  };
   
   return (
     <Card className={className}>
@@ -132,11 +142,11 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => refetchHomeStop()}
+                onClick={handleRefresh}
                 disabled={homeStopLoading}
                 aria-label="Refresh home stop arrivals"
               >
-                <RefreshCw className={cn("h-4 w-4", { "animate-spin": homeStopLoading })} />
+                <RefreshCw className={cn("h-4 w-4", { "animate-spin": homeStopLoading || isAnimating })} />
               </Button>
             )}
           </div>
