@@ -43,20 +43,17 @@ export default function AppLayout({
         {/* Safe area top spacing - mimics iPhone notch area */}
         <div className="h-12 bg-background" />
         
-        {/* Main scrollable content area with padding for dock */}
+        {/* Main scrollable content area without bottom padding for dock */}
         <QueryClientProvider client={queryClient}>
           <StationsProvider>
-            <div className={`h-[calc(844px-3rem)] overflow-hidden flex flex-col ${shouldShowDock ? 'pb-24' : ''}`}>
-              <main className="flex-1 overflow-y-auto px-4">
+            <div className="h-[calc(844px-3rem)] overflow-hidden flex flex-col relative">
+              {/* Main content without bottom padding to allow content to flow behind dock */}
+              <main className="flex-1 overflow-y-auto px-4 pb-6">
                 {children}
               </main>
 
-              {/* Navigation Dock */}
-              {shouldShowDock && (
-                <div className="w-full">
-                  <NavigationDock />
-                </div>
-              )}
+              {/* Navigation Dock positioned absolutely */}
+              {shouldShowDock && <NavigationDock />}
             </div>
           </StationsProvider>
         </QueryClientProvider>

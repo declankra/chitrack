@@ -86,7 +86,7 @@ export default function NavigationDock() {
   };
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 flex flex-col justify-center items-center w-full bg-gradient-to-t from-background/80 to-background/0 backdrop-blur-lg">
+    <div className="absolute bottom-4 left-0 right-0 flex flex-col justify-center items-center w-full z-50 pointer-events-none">
       {/* Search Results */}
       <AnimatePresence>
         {isSearchExpanded && searchResults.length > 0 && (
@@ -94,7 +94,7 @@ export default function NavigationDock() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="w-[90%] max-h-[40vh] overflow-y-auto mb-2"
+            className="w-[90%] max-h-[40vh] overflow-y-auto mb-2 pointer-events-auto"
           >
             <Card className="w-full overflow-hidden">
               <ul className="divide-y">
@@ -114,9 +114,8 @@ export default function NavigationDock() {
       </AnimatePresence>
 
       {/* Navigation Dock */}
-
       <motion.nav
-        className="flex items-center gap-3 bg-background/5 border border-border backdrop-blur-lg py-2 px-4 rounded-full shadow-lg mb-6"
+        className="flex items-center gap-3 bg-background/70 border border-border backdrop-blur-lg py-2 px-4 rounded-full shadow-lg pointer-events-auto"
         animate={{
           width: isSearchExpanded ? "90%" : "auto"
         }}
