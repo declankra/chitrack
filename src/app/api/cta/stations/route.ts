@@ -139,10 +139,62 @@ async function fetchStationsDynamic(): Promise<Station[]> {
         return stations;
     } catch (error) {
         console.error('Error fetching station data:', error);
-        // If all else fails, return example data as fallback
+        // Return fallback data without trying to fetch again
         console.log('Returning fallback station data');
-        const fallbackData = await fetchFreshStationData();
-        return fallbackData;
+        return [
+            {
+                stationId: "40360",
+                stationName: "Southport",
+                lat: 41.943744,
+                lon: -87.663619,
+                stops: [
+                    {
+                        stopId: "30070",
+                        stopName: "Southport",
+                        stopDesc: "Service toward Kimball",
+                        directionName: "Service toward Kimball",
+                        parentStationId: "40360",
+                        lat: 41.943744,
+                        lon: -87.663619,
+                    },
+                    {
+                        stopId: "30071",
+                        stopName: "Southport",
+                        stopDesc: "Service toward Loop",
+                        directionName: "Service toward Loop",
+                        parentStationId: "40360",
+                        lat: 41.943744,
+                        lon: -87.663619,
+                    },
+                ],
+            },
+            {
+                stationId: "41320",
+                stationName: "Howard",
+                lat: 42.019063,
+                lon: -87.672892,
+                stops: [
+                    {
+                        stopId: "30170",
+                        stopName: "Howard",
+                        stopDesc: "Service toward 95th/Dan Ryan",
+                        directionName: "Service toward 95th/Dan Ryan",
+                        parentStationId: "41320",
+                        lat: 42.019063,
+                        lon: -87.672892,
+                    },
+                    {
+                        stopId: "30171",
+                        stopName: "Howard",
+                        stopDesc: "Terminal arrival",
+                        directionName: "Terminal arrival",
+                        parentStationId: "41320",
+                        lat: 42.019063,
+                        lon: -87.672892,
+                    },
+                ],
+            },
+        ];
     }
 }
 
