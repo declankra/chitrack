@@ -154,10 +154,7 @@ export async function GET() {
     try {
         console.log('Stations API endpoint called');
         const stations = await fetchStationsDynamic();
-        console.log('Stations data fetched:', {
-            count: stations.length,
-            sample: stations.slice(0, 2)
-        });
+        
         return NextResponse.json(stations);
     } catch (error) {
         console.error('Error in stations API route:', error);
