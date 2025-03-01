@@ -265,6 +265,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ stations, onStationSelect }
         zoom: 11,
         maxBounds: CHICAGO_BOUNDS as LngLatBoundsLike, // Restrict map panning to Chicago area
         attributionControl: false,
+        logoPosition: 'top-right', // Position the logo in top-right corner
       });
       
       // Debug map creation
@@ -353,6 +354,11 @@ const MapComponent: React.FC<MapComponentProps> = ({ stations, onStationSelect }
         .mapboxgl-ctrl-bottom-right {
           /* Move controls up to account for bottom dock */
           bottom: 70px !important;
+        }
+        
+        /* Hide Mapbox logo */
+        .mapboxgl-ctrl-logo {
+          display: none !important;
         }
         
         /* Pulsing dot animation for user location */
