@@ -17,6 +17,7 @@ export async function GET() {
                          process.env.NODE_ENV === 'development';
   
   if (!isValidReferer) {
+    console.error('Invalid referer in Mapbox token request:', referer);
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 403 }
@@ -26,8 +27,12 @@ export async function GET() {
   // Get the Mapbox token from environment variables
   const mapboxToken = process.env.MAPBOX_TOKEN;
   
+  // Log token availability (but not the actual token)
+  console.log('Mapbox token availability:', !!mapboxToken);
+  
   // If token is missing, return an error
   if (!mapboxToken) {
+    console.error('MAPBOX_TOKEN environment variable is not configured');
     return NextResponse.json(
       { error: 'Mapbox token not configured' },
       { status: 500 }
@@ -44,4 +49,4 @@ export async function GET() {
       }
     }
   );
-} 
+}

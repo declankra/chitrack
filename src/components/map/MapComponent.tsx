@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import mapboxgl, { LngLatBoundsLike, LngLatLike } from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import 'mapbox-gl/dist/mapbox-gl.css'; // Make sure this import is at the top
 import { MapPin } from 'lucide-react';
 import { RouteColor, ROUTE_COLORS } from '@/lib/types/cta';
 import type { Station } from '@/lib/types/cta';
@@ -205,21 +205,28 @@ const MapComponent: React.FC<MapComponentProps> = ({ stations, onStationSelect }
     const fetchMapboxToken = async () => {
       try {
         setIsLoading(true);
+        console.log('Fetching Mapbox token...');
         const response = await fetch('/api/mapbox');
         
         if (!response.ok) {
-          throw new Error('Failed to fetch Mapbox token');
+          throw new Error(`Failed to fetch Mapbox token: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
+        console.log('Mapbox token received:', data.token ? 'Token exists' : 'Token is empty');
+        
+        if (!data.token) {
+          throw new Error('Received empty Mapbox token from API');
+        }
+        
         setMapboxToken(data.token);
         
-        // Set the token for mapboxgl
+        // Set the token for mapboxgl - IMPORTANT
         mapboxgl.accessToken = data.token;
         setIsLoading(false);
       } catch (err) {
         console.error('Error fetching Mapbox token:', err);
-        setError('Failed to load map. Please try again later.');
+        setError(`Failed to load map: ${err instanceof Error ? err.message : 'Unknown error'}`);
         setIsLoading(false);
       }
     };
@@ -229,59 +236,100 @@ const MapComponent: React.FC<MapComponentProps> = ({ stations, onStationSelect }
   
   // Initialize map when component mounts and token is available
   useEffect(() => {
-    if (!mapContainer.current || !mapboxToken || isLoading) return;
+    if (!mapContainer.current || !mapboxToken || isLoading) {
+      console.log('Map initialization skipped:', {
+        containerExists: !!mapContainer.current,
+        tokenExists: !!mapboxToken,
+        isLoading
+      });
+      return;
+    }
     
-    // Create map instance
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v10', // Light monochromatic style
-      center: CHICAGO_CENTER as LngLatLike,
-      zoom: 11,
-      maxBounds: CHICAGO_BOUNDS as LngLatBoundsLike, // Restrict map panning to Chicago area
-      attributionControl: false,
-    });
-    
-    // Add navigation controls
-    map.current.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
-    
-    // Set up map events
-    const mapInstance = map.current;
-    mapInstance.on('load', () => {
-      // Add transit lines to the map
-      Object.entries(SIMPLIFIED_CTA_LINES).forEach(([routeName, line]) => {
-        const routeCode = line.properties.color as RouteColor;
-        const color = getRouteColor(routeCode);
-        
-        mapInstance.addSource(`line-${routeName}`, {
-          type: 'geojson',
-          data: line as unknown as GeoJSON.Feature
-        });
-        
-        mapInstance.addLayer({
-          id: `line-${routeName}`,
-          type: 'line',
-          source: `line-${routeName}`,
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round'
-          },
-          paint: {
-            'line-color': color,
-            'line-width': 4
-          }
-        });
+    try {
+      console.log('Initializing Mapbox map...');
+      
+      // Verify container dimensions
+      const container = mapContainer.current;
+      const containerStyle = window.getComputedStyle(container);
+      console.log('Map container dimensions:', {
+        width: containerStyle.width,
+        height: containerStyle.height,
+        position: containerStyle.position
       });
       
-      // Add station markers after transit lines are added
-      addStationMarkers();
-    });
-    
-    // Add global styles for map components
-    addMapStyles();
+      // Create map instance
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/light-v10', // Light monochromatic style
+        center: CHICAGO_CENTER as LngLatLike,
+        zoom: 11,
+        maxBounds: CHICAGO_BOUNDS as LngLatBoundsLike, // Restrict map panning to Chicago area
+        attributionControl: false,
+      });
+      
+      // Debug map creation
+      console.log('Map instance created:', !!map.current);
+      
+      // Add navigation controls
+      map.current.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+      
+      // Set up map events
+      const mapInstance = map.current;
+      
+      // Debug map load event
+      mapInstance.on('load', () => {
+        console.log('Map loaded successfully');
+        // Add transit lines to the map
+        try {
+          Object.entries(SIMPLIFIED_CTA_LINES).forEach(([routeName, line]) => {
+            const routeCode = line.properties.color as RouteColor;
+            const color = getRouteColor(routeCode);
+            
+            mapInstance.addSource(`line-${routeName}`, {
+              type: 'geojson',
+              data: line as unknown as GeoJSON.Feature
+            });
+            
+            mapInstance.addLayer({
+              id: `line-${routeName}`,
+              type: 'line',
+              source: `line-${routeName}`,
+              layout: {
+                'line-join': 'round',
+                'line-cap': 'round'
+              },
+              paint: {
+                'line-color': color,
+                'line-width': 4
+              }
+            });
+          });
+          
+          // Add station markers after transit lines are added
+          addStationMarkers();
+          console.log('Transit lines and markers added');
+        } catch (err) {
+          console.error('Error adding transit lines:', err);
+        }
+      });
+      
+      // Listen for map errors
+      mapInstance.on('error', (e) => {
+        console.error('Mapbox error:', e);
+        setError(`Map error: ${e.error?.message || 'Unknown error'}`);
+      });
+      
+      // Add global styles for map components
+      addMapStyles();
+    } catch (err) {
+      console.error('Error initializing map:', err);
+      setError(`Failed to initialize map: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
     
     // Clean up on unmount
     return () => {
       if (map.current) {
+        console.log('Cleaning up map instance');
         map.current.remove();
         map.current = null;
       }
@@ -322,6 +370,16 @@ const MapComponent: React.FC<MapComponentProps> = ({ stations, onStationSelect }
         .station-marker:hover {
           transform: scale(1.5);
           box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Make sure the map canvas is visible */
+        .mapboxgl-canvas {
+          display: block !important;
+        }
+        
+        /* Fix potential z-index issues */
+        .mapboxgl-map {
+          z-index: 1;
         }
       `;
       document.head.appendChild(style);
@@ -456,7 +514,11 @@ const MapComponent: React.FC<MapComponentProps> = ({ stations, onStationSelect }
         </div>
       ) : (
         <>
-          <div ref={mapContainer} className="absolute inset-0" />
+          <div 
+            ref={mapContainer} 
+            className="absolute inset-0" 
+            style={{ width: '100%', height: '100%' }} // Explicit dimensions
+          />
           
           {/* Locate Me button */}
           <button

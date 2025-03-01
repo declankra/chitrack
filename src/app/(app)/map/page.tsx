@@ -1,3 +1,4 @@
+// src/app/(app)/map/page.tsx
 "use client";
 
 import React, { useState } from 'react';
@@ -23,9 +24,7 @@ export default function MapPage() {
   };
 
   return (
-    // Use flex-1 + relative + min-h-0 so this container can actually fill
-    // the height of its parent layout. That way, the map can appear.
-    <div className="flex-1 relative min-h-0 w-full">
+    <div className="relative w-full h-full">
       {stationsLoading ? (
         <div className="absolute inset-0 flex items-center justify-center">
           <p className="text-muted-foreground">Loading map...</p>
@@ -36,7 +35,7 @@ export default function MapPage() {
             stations={stations} 
             onStationSelect={handleStationSelect} 
           />
-          
+
           <ArrivalBottomSheet 
             isOpen={showBottomSheet} 
             station={selectedStation} 
