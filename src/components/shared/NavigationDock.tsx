@@ -1,4 +1,4 @@
-// src/components/ui/NavigationDock.tsx
+// src/components/shared/NavigationDock.tsx
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Home, Search, Map } from 'lucide-react';
@@ -8,7 +8,6 @@ import { useState, useEffect } from 'react';
 import { useStations } from '@/lib/hooks/useStations';
 import { Card } from '@/components/ui/card';
 import { Station } from '@/lib/types/cta';
-import { StationStop } from '@/lib/types/cta';
 
 const DOCK_ITEMS = [
   { name: 'Home', icon: Home, path: '/home' },
