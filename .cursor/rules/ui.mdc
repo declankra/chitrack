@@ -1,0 +1,23 @@
+---
+description: Designing and Styling the UI
+globs: src/components/**/*.tsx
+alwaysApply: false
+---
+### Style & Design
+
+- **Design Aesthetic:**
+    - Minimalistic, modern, and uncluttered.
+    - Floating dock with active states and smooth animations.
+    - Consistent color scheme: primarily black/white with route-specific colors for clarity.
+- **Interaction Details:**
+    - Desktop users see hover magnification/animation effects.
+    - Mobile users benefit from quick taps and one-tap refresh for arrival times.
+- **Style:** clean, sleek, minimalistic, uncluttered, and modern style. Colors are occasionally uses sharp, crisp animations to keep visitors engaged, adding a “wow” effect.
+- **Color Scheme:** Black and white everything unless for the route information (color matches name of route, e.g. “red train line” is red)
+    - automatically swaps white/black based on appearance
+        - primary color = black
+        - primary base = white
+        - base content = shade of black-ish grey
+        - base = white
+- **Brand:**
+    - Premium. Elegance. Elevated everyday. Minimalistic Productivity. Professional.
