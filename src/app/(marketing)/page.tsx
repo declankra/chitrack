@@ -1,6 +1,5 @@
 // src/app/(marketing)/page.tsx
-import { Iphone16Pro } from "@/components/ui/iphone-16-pro";
-import { Button } from "@/components/ui/button";
+import { Hero } from "@/components/marketing/hero";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { 
@@ -12,50 +11,6 @@ import {
   CheckCircle2,
   HelpCircle
 } from "lucide-react";
-
-// Hero section component
-const Hero = () => (
-  <section className="relative w-full overflow-hidden bg-background pb-20 pt-10 md:pt-0">
-    <div className="container relative z-10 mx-auto px-4">
-      <div className="grid gap-12 md:grid-cols-2 md:gap-20 md:pt-20">
-        {/* Text content */}
-        <div className="flex flex-col justify-center space-y-8">
-          <div className="space-y-6">
-            <h2 className="text-sm font-medium tracking-wider text-secondary uppercase">
-              Chicago Transit Tracking Done Right
-            </h2>
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-              The Chicago CTA Tracker Ventra Couldn't Give You
-            </h1>
-            <p className="text-xl text-muted-foreground">
-              Save time and travel in style with real-time CTA arrivals, beautifully designed for Chicago professionals.
-            </p>
-          </div>
-          
-          {/* Social proof */}
-          <div className="flex items-center gap-4">
-            <div className="flex -space-x-2">
-              <Users className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Trusted by 1,000+ Chicago commuters
-            </p>
-          </div>
-
-          {/* CTA Button */}
-          <Button size="lg" className="w-full sm:w-auto">
-            Download on the App Store
-          </Button>
-        </div>
-
-        {/* iPhone mockup */}
-        <div className="relative mx-auto w-full max-w-[280px] md:max-w-none">
-          <Iphone16Pro width={320} height={640} className="w-full" />
-        </div>
-      </div>
-    </div>
-  </section>
-);
 
 // Features section showing key benefits
 const Features = () => (
