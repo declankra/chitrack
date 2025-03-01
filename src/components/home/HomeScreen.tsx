@@ -29,7 +29,7 @@ export default function HomeScreen() {
           </Link>
         </h1>
         <p className="text-sm text-muted-foreground">
-          Let's get you where you need to go.
+          Let's get you where you need to go
         </p>
       </div>
 
