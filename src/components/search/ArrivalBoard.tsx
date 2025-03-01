@@ -1,22 +1,14 @@
-// src/app/(app)/search/_components/ArrivalBoard.tsx
+// src/components/search/ArrivalBoard.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCcw, AlertCircle, MapPin, ArrowRight } from 'lucide-react';
 import { cn } from "@/lib/utils";
-import type { RouteColor } from "@/lib/types/cta";
-import { ROUTE_COLORS } from "@/lib/types/cta";
-
-interface Arrival {
-  rt: RouteColor;   // route code, e.g. "Red"
-  destNm: string;   // destination name
-  arrT: string;     // arrival time in CTA format
-  isApp: string;    // '1' if approaching
-  isDly: string;    // '1' if delayed
-  stpDe: string;    // human-friendly direction
-}
+import type { Arrival } from "@/lib/types/cta";
+import RouteIndicator, { getFullLineName, getRouteBackgroundClass } from '@/components/shared/RouteIndicator';
+import { formatRelativeTime, parseCtaDate, formatTimeDisplay } from '@/lib/utilities/timeUtils';
 
 interface ArrivalBoardProps {
   arrivals: any[];
@@ -28,114 +20,71 @@ interface ArrivalBoardProps {
 }
 
 /**
- * Format relative time in minutes
+ * Renders arrival time with status indicators for a train
  */
-function formatRelativeTime(date: Date | null, currentTime: Date): string {
-  if (!date) return '';
-  const diffMs = currentTime.getTime() - date.getTime();
-  const diffMins = Math.round(diffMs / 60000);
-  
-  if (diffMins < 1) return 'just now';
-  return `${diffMins}m ago`;
-}
-
-/**
- * Convert either a CTA arrival time string "YYYYMMDD HH:mm:ss" or ISO-8601 date string into a JS Date
- */
-function parseCtaDate(ctaTime: string): Date | null {
-  try {
-    // Handle ISO-8601 format (e.g. "2025-02-18T12:43:48")
-    if (ctaTime.includes('T')) {
-      const d = new Date(ctaTime);
-      return Number.isNaN(d.getTime()) ? null : d;
-    }
-    
-    // Handle CTA custom format ("YYYYMMDD HH:mm:ss")
-    if (!ctaTime || !ctaTime.includes(" ")) {
-      return null;
-    }
-    
-    const [datePart, timePart] = ctaTime.split(" ");
-    if (!datePart || !timePart) {
-      return null;
-    }
-    
-    const year = +datePart.slice(0, 4);
-    const month = +datePart.slice(4, 6) - 1;
-    const day = +datePart.slice(6, 8);
-    const [hour, minute, second] = timePart.split(":").map(Number);
-
-    const d = new Date(year, month, day, hour, minute, second);
-    return Number.isNaN(d.getTime()) ? null : d;
-  } catch (err) {
-    console.error("Error parsing CTA date:", err);
-    return null;
-  }
-}
-
-/**
- * Helper to format arrival time as "Due (hh:mm AM/PM)" or "8 min (hh:mm AM/PM)"
- * If isApp === "1", returns "Due"
- */
-function formatArrivalTime(arrival: Arrival, currentTime: Date) {
+const ArrivalTimeDisplay: React.FC<{
+  arrival: Arrival;
+  currentTime: Date;
+}> = ({ arrival, currentTime }) => {
+  const isApproaching = arrival.isApp === '1';
+  const isDelayed = arrival.isDly === '1';
   const arrTime = parseCtaDate(arrival.arrT);
-
-  if (!arrTime) {
-    return "N/A";
+  
+  if (!arrTime) return <div>N/A</div>;
+  
+  // If the train is approaching
+  if (isApproaching) {
+    return (
+      <div className="flex flex-col items-end">
+        <span className="text-lg font-bold text-destructive">Due</span>
+        <span className="text-xs text-muted-foreground">
+          {formatTimeDisplay(arrTime)}
+        </span>
+      </div>
+    );
   }
-
-  // If isApp = "1", the train is approaching
-  if (arrival.isApp === "1") {
-    return `Due (${arrTime.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })})`;
+  
+  // If the train is delayed
+  if (isDelayed) {
+    return (
+      <div className="flex flex-col items-end">
+        <span className="text-amber-500 flex items-center gap-1 font-medium">
+          <AlertCircle className="w-3 h-3" /> Delayed
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {formatTimeDisplay(arrTime)}
+        </span>
+      </div>
+    );
   }
-
+  
+  // Calculate minutes until arrival
   const diffMs = arrTime.getTime() - currentTime.getTime();
   const diffMin = Math.round(diffMs / 60000);
-
-  if (diffMin <= 0) {
-    // Train should be here
-    return `Due (${arrTime.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })})`;
-  }
-
-  const timeString = arrTime.toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  return `${diffMin} min (${timeString})`;
-}
-
-/**
- * Map route codes to full line names
- */
-function getFullLineName(code: string): string {
-  const lineNames: Record<string, string> = {
-    'Org': 'Orange',
-    'G': 'Green',
-    'Brn': 'Brown',
-    'Y': 'Yellow',
-    'P': 'Purple',
-  };
-  return lineNames[code] || code;
-}
-
-/**
- * Normalize route codes from the API to match our RouteColor type
- */
-function normalizeRouteColor(route: string): RouteColor {
-  // Convert route to proper case to match RouteColor type
-  const routeMap: Record<string, RouteColor> = {
-    'RED': 'Red',
-    'BLUE': 'Blue',
-    'BRN': 'Brn',
-    'G': 'G',
-    'ORG': 'Org',
-    'P': 'P',
-    'PINK': 'Pink',
-    'Y': 'Y'
-  };
   
-  return routeMap[route.toUpperCase()] || 'Red'; // Default to Red if unknown
-}
+  if (diffMin <= 0) {
+    return (
+      <div className="flex flex-col items-end">
+        <span className="text-lg font-bold text-destructive">Due</span>
+        <span className="text-xs text-muted-foreground">
+          {formatTimeDisplay(arrTime)}
+        </span>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="flex flex-col items-end">
+      <span className="flex items-baseline gap-1">
+        <span className="text-lg font-bold">{diffMin}</span>
+        <span className="text-sm font-normal text-muted-foreground">min</span>
+      </span>
+      <span className="text-xs text-muted-foreground">
+        {formatTimeDisplay(arrTime)}
+      </span>
+    </div>
+  );
+};
 
 export default function ArrivalBoard({ 
   arrivals, 
@@ -163,7 +112,7 @@ export default function ArrivalBoard({
   }, []);
 
   // Process arrivals data to group by route first
-  const routeGroupedArrivals = React.useMemo(() => {
+  const routeGroupedArrivals = useMemo(() => {
     // Group arrivals by route
     const routeGroups: Record<string, {
       route: string,
@@ -265,19 +214,17 @@ export default function ArrivalBoard({
       {/* Route-Grouped Arrivals */}
       <div className="space-y-4 px-4">
         {routeGroupedArrivals.map(({ route, arrivals, stopNames }) => {
-          const normalizedRoute = normalizeRouteColor(route);
-          const routeColorClass = ROUTE_COLORS[normalizedRoute] || "bg-gray-600";
           const routeName = getFullLineName(route);
           
           return (
             <Card key={route} className="overflow-hidden">
-                              {/* Route Header */}
+              {/* Route Header */}
               <div className={cn(
                 "px-4 py-3 flex items-center border-b",
-                routeColorClass.replace('bg-', 'bg-opacity-10 bg-')
+                getRouteBackgroundClass(route)
               )}>
                 <div className="flex items-center gap-2">
-                  <div className={cn("w-3 h-3 rounded-full", routeColorClass)} />
+                  <RouteIndicator route={route} />
                   <span className="font-semibold">{routeName} Line</span>
                 </div>
               </div>
@@ -288,19 +235,11 @@ export default function ArrivalBoard({
                   arrivals.map((arrival, idx) => {
                     const isApproaching = arrival.isApp === "1";
                     const isDelayed = arrival.isDly === "1";
-                    const arrivalText = formatArrivalTime(arrival, currentTime);
-                    const isDue = isApproaching || arrivalText.startsWith('Due');
-                    
-                    // Extract just the minutes for prominent display
-                    const minutesMatch = arrivalText.match(/^(\d+) min/);
-                    const minutes = minutesMatch ? minutesMatch[1] : null;
-                    
-                    // Extract the time for secondary display
-                    const timeMatch = arrivalText.match(/\((.+)\)/);
-                    const time = timeMatch ? timeMatch[1] : null;
+                    const isDue = isApproaching || parseCtaDate(arrival.arrT) &&
+                      (new Date().getTime() >= parseCtaDate(arrival.arrT)!.getTime());
                     
                     return (
-                                              <div 
+                      <div
                         key={idx}
                         className={cn(
                           "px-4 py-3 flex items-center justify-between",
@@ -319,28 +258,10 @@ export default function ArrivalBoard({
                         </div>
                         
                         {/* Right: Arrival Time */}
-                        <div className="flex flex-col items-end">
-                          {isDelayed && (
-                            <span className="text-xs font-semibold text-amber-600 flex items-center gap-1">
-                              <AlertCircle className="w-3 h-3" /> Delayed
-                            </span>
-                          )}
-                          
-                          {isDue ? (
-                            <span className="text-lg font-bold text-destructive">Due</span>
-                          ) : minutes ? (
-                            <span className="text-lg font-bold">{minutes}<span className="text-sm font-normal text-muted-foreground ml-1">min</span></span>
-                          ) : (
-                            <span className="text-lg font-bold">--</span>
-                          )}
-                          
-                          
-                          {time && (
-                            <span className="text-xs text-muted-foreground">
-                              {time}
-                            </span>
-                          )}
-                        </div>
+                        <ArrivalTimeDisplay
+                          arrival={arrival}
+                          currentTime={currentTime}
+                        />
                       </div>
                     );
                   })

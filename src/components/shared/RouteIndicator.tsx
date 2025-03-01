@@ -12,6 +12,34 @@ interface RouteIndicatorProps {
 }
 
 /**
+ * Normalize the route code to match our RouteColor type for train circle and background color
+ */
+export const normalizeRouteColor = (routeCode: string): RouteColor => {
+  // Convert route to proper case to match RouteColor type
+  const routeMap: Record<string, RouteColor> = {
+    'RED': 'Red',
+    'BLUE': 'Blue',
+    'BRN': 'Brn',
+    'G': 'G',
+    'ORG': 'Org',
+    'P': 'P',
+    'PINK': 'Pink',
+    'Y': 'Y'
+  };
+  
+  return routeMap[routeCode.toUpperCase()] || 'Red'; // Default to Red if unknown
+};
+
+/**
+ * Helper function to get background color class with opacity for a route
+ */
+export const getRouteBackgroundClass = (routeCode: string): string => {
+  const normalizedRoute = normalizeRouteColor(routeCode);
+  // Return the Tailwind class with opacity
+  return `${ROUTE_COLORS[normalizedRoute].replace('bg-', 'bg-opacity-10 bg-')}`;
+};
+
+/**
  * RouteIndicator component - displays a colored circle for a train route
  */
 export const RouteIndicator: React.FC<RouteIndicatorProps> = ({
@@ -19,23 +47,6 @@ export const RouteIndicator: React.FC<RouteIndicatorProps> = ({
   size = 'md',
   className
 }) => {
-  // Normalize the route code to match our RouteColor type
-  const normalizeRouteColor = (routeCode: string): RouteColor => {
-    // Convert route to proper case to match RouteColor type
-    const routeMap: Record<string, RouteColor> = {
-      'RED': 'Red',
-      'BLUE': 'Blue',
-      'BRN': 'Brn',
-      'G': 'G',
-      'ORG': 'Org',
-      'P': 'P',
-      'PINK': 'Pink',
-      'Y': 'Y'
-    };
-    
-    return routeMap[routeCode.toUpperCase()] || 'Red'; // Default to Red if unknown
-  };
-  
   const normalizedRoute = normalizeRouteColor(route);
   const routeColorClass = ROUTE_COLORS[normalizedRoute] || 'bg-gray-600';
   
