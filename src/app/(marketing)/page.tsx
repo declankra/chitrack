@@ -1,13 +1,11 @@
 // src/app/(marketing)/page.tsx
 import { Hero } from "@/components/marketing/hero";
 import { Card } from "@/components/ui/card";
-import Link from "next/link";
 import { 
   Clock, 
   StarIcon, 
   MapPin, 
   RefreshCw,
-  Users,
   CheckCircle2,
   HelpCircle
 } from "lucide-react";
@@ -39,15 +37,15 @@ const Features = () => (
           },
           {
             icon: MapPin,
-            title: "Smart location",
+            title: "Discover new stations",
             description:
-              "Automatically shows the closest stations when you're out exploring Chicago.",
+              "Use the slickest map ever made to view stations outside your normal route.",
           },
           {
             icon: RefreshCw,
             title: "Real-time updates",
             description:
-              "Live arrival times that refresh automatically every 30 seconds.",
+              "Live arrival times (unlike Apple/Google Maps) that refresh automatically every 30 seconds.",
           },
           {
             icon: CheckCircle2,
@@ -106,13 +104,13 @@ const ProblemSolution = () => (
             </p>
             <ul className="space-y-2 text-muted-foreground">
               <li className="flex items-center gap-2">
-                • One-tap access to your most important stations
+                • One-tap access to your most frequently used stations
               </li>
               <li className="flex items-center gap-2">
-                • Clean, professional interface that respects your time
+                • Clean, professional interface that respects your time and sanity
               </li>
               <li className="flex items-center gap-2">
-                • Smart features that adapt to your daily routine
+                • Smart features that make sense for your daily routine
               </li>
             </ul>
           </div>
@@ -134,6 +132,11 @@ const FAQ = () => {
       question: "Does ChiTrack work for all CTA train lines?",
       answer:
         "Yes, ChiTrack supports all CTA train lines including Red, Blue, Brown, Green, Orange, Purple, Pink, and Yellow lines."
+    },
+    {
+      question: "Is this the official Ventra transit app?",
+      answer:
+        "No, ChiTrack is the transit app Ventra could never ship - designed with a focus on speed, simplicity, and user experience that the official app lacks."
     },
     {
       question: "How much does ChiTrack cost?",
