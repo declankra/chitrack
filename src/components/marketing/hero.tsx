@@ -69,7 +69,7 @@ export function Hero() {
           </div>
 
           {/* iPhone mockup */}
-          <div className="relative mx-auto w-full max-w-[280px] md:max-w-none">
+          <div className="relative mx-auto w-full max-w-[280px] md:max-w-none mt-16 sm:mt-8 md:mt-0">
             {/* Announcement pill */}
             <div className="absolute -top-14 left-0 right-0 flex justify-center w-full">
               <Link href="/home">
