@@ -1,11 +1,22 @@
 // src/app/(app)/layout.tsx
 'use client';
 
-import NavigationDock from '@/components/shared/NavigationDock';
 import { usePathname } from 'next/navigation';
-import { StationsProvider } from '@/lib/providers/StationsProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+
+// Import without SSR
+const NavigationDock = dynamic(
+  () => import('@/components/shared/NavigationDock'),
+  { ssr: false }
+);
+
+const StationsProviderWithoutSSR = dynamic(
+  () => import('@/lib/providers/StationsProvider').then(mod => mod.StationsProvider),
+  { ssr: false }
+);
+
 
 export default function AppLayout({
   children,
@@ -45,7 +56,7 @@ export default function AppLayout({
         
         {/* Main scrollable content area without bottom padding for dock */}
         <QueryClientProvider client={queryClient}>
-          <StationsProvider>
+          <StationsProviderWithoutSSR>
             <div className="h-[calc(844px-3rem)] overflow-hidden flex flex-col relative">
               {/* Main content without bottom padding to allow content to flow behind dock */}
               <main className="flex-1 overflow-y-auto px-4 pb-6">
@@ -55,7 +66,7 @@ export default function AppLayout({
               {/* Navigation Dock positioned absolutely */}
               {shouldShowDock && <NavigationDock />}
             </div>
-          </StationsProvider>
+          </StationsProviderWithoutSSR>
         </QueryClientProvider>
       </div>
     </div>
