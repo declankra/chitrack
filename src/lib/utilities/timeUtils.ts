@@ -1,4 +1,5 @@
 // src/lib/utilities/timeUtils.ts
+import type { Arrival } from '@/lib/types/cta';
 
 /**
  * Time utility functions for CTA arrival data
@@ -80,4 +81,26 @@ export const getGreeting = (): string => {
   if (hour < 12) return 'Good morning';
   if (hour < 17) return 'Good afternoon';
   return 'Good evening';
+};
+
+/**
+ * Filters out arrivals that are too old to be relevant
+ * @param arrivals Array of arrivals to filter
+ * @param maxPastMinutes Maximum number of minutes in the past to still show an arrival
+ * @param currentTime Current time (defaults to now)
+ * @returns Filtered array of arrivals
+ */
+export const filterStaleArrivals = (arrivals: Arrival[], maxPastMinutes: number = 2, currentTime: Date = new Date()): Arrival[] => {
+  if (!arrivals || arrivals.length === 0) return [];
+  
+  return arrivals.filter(arrival => {
+    const arrTime = parseCtaDate(arrival.arrT);
+    if (!arrTime) return false; // If we can't parse the time, filter it out
+    
+    const diffMs = arrTime.getTime() - currentTime.getTime();
+    const diffMin = diffMs / 60000;
+    
+    // Keep arrivals that are in the future OR within maxPastMinutes of the past
+    return diffMin > -maxPastMinutes;
+  });
 };

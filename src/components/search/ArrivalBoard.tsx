@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { useRefreshAnimation } from '@/lib/hooks/useRefreshAnimation';
 import type { Arrival } from "@/lib/types/cta";
 import RouteIndicator, { getFullLineName, getRouteBackgroundClass } from '@/components/shared/RouteIndicator';
-import { formatRelativeTime, parseCtaDate, formatTimeDisplay } from '@/lib/utilities/timeUtils';
+import { formatRelativeTime, parseCtaDate, formatTimeDisplay, filterStaleArrivals } from '@/lib/utilities/timeUtils';
 
 interface ArrivalBoardProps {
   arrivals: any[];
@@ -129,8 +129,17 @@ export default function ArrivalBoard({
       arrivals: Arrival[],
       stopNames: Set<string>
     }> = {};
+
+    // Filter out stale arrivals data at the station level
+    const filteredArrivals = arrivals.map((station: any) => ({
+      ...station,
+      stops: station.stops.map((stop: any) => ({
+        ...stop,
+        arrivals: filterStaleArrivals(stop.arrivals, 2, currentTime)
+      }))
+    }));
     
-    arrivals.forEach((station: any) => {
+    filteredArrivals.forEach((station: any) => {
       station.stops.forEach((stop: any) => {
         stop.arrivals.forEach((arrival: Arrival) => {
           const route = arrival.rt;
@@ -163,7 +172,7 @@ export default function ArrivalBoard({
     });
     
     return Object.values(routeGroups);
-  }, [arrivals]);
+  }, [arrivals, currentTime]); // Added currentTime as dependency for re-filtering
 
   return (
     <div className="flex-1 overflow-y-auto pb-24">
@@ -210,9 +219,9 @@ export default function ArrivalBoard({
       )}
       
       {/* Empty State */}
-      {arrivals.length === 0 && !error && !loading && (
+      {(arrivals.length === 0 || routeGroupedArrivals.length === 0) && !error && !loading && (
         <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-          <p className="text-muted-foreground mb-2">No arrival information available</p>
+          <p className="text-muted-foreground mb-2">No upcoming arrivals available</p>
           <Button variant="outline" size="sm" onClick={handleRefresh} className="mt-2">
             <RefreshCcw className={cn("w-4 h-4 mr-2", { "animate-spin": isAnimating })} />
             Refresh

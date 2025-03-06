@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// src/components/home/HomeStopSection.tsx
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { House, MapPin, RefreshCw, AlertCircle } from 'lucide-react';
@@ -7,7 +8,7 @@ import Link from 'next/link';
 import RouteIndicator from '@/components/shared/RouteIndicator';
 import { useStopArrivals } from '@/lib/hooks/useStopArrivals';
 import { useRefreshAnimation } from '@/lib/hooks/useRefreshAnimation';
-import { formatRelativeTime, parseCtaDate, formatTimeDisplay } from '@/lib/utilities/timeUtils';
+import { formatRelativeTime, parseCtaDate, formatTimeDisplay, filterStaleArrivals } from '@/lib/utilities/timeUtils';
 import { findStopById } from '@/lib/utilities/findStop';
 import type { Station, Arrival } from '@/lib/types/cta';
 
@@ -118,6 +119,12 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
     return () => clearInterval(intervalId);
   }, []);
   
+  // Filter stale arrivals
+  const filteredArrivals = useMemo(() => {
+    if (!homeStopArrivals?.arrivals) return [];
+    return filterStaleArrivals(homeStopArrivals.arrivals, 2, currentTime);
+  }, [homeStopArrivals, currentTime]);
+  
   // Handle refresh with animation
   const handleRefresh = () => {
     triggerAnimation();
@@ -179,13 +186,13 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
                 <AlertCircle className="h-4 w-4 mr-2" />
                 <p className="text-sm">Failed to load arrivals. Please try again.</p>
               </div>
-            ) : !homeStopArrivals?.arrivals.length ? (
+            ) : !filteredArrivals.length ? (
               <div className="text-center py-4">
                 <p className="text-sm text-muted-foreground">No upcoming arrivals</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {homeStopArrivals.arrivals.slice(0, 3).map((arrival, idx) => (
+                {filteredArrivals.slice(0, 3).map((arrival, idx) => (
                   <div key={idx} className="flex items-center justify-between border-b pb-2 last:border-b-0 last:pb-0">
                     <div className="flex items-center gap-2">
                       <RouteIndicator route={arrival.rt} />

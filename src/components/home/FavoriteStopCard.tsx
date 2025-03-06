@@ -4,7 +4,7 @@ import { MapPin, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import RouteIndicator from '@/components/shared/RouteIndicator';
 import { useStopArrivals } from '@/lib/hooks/useStopArrivals';
-import { formatTimeDisplay, parseCtaDate } from '@/lib/utilities/timeUtils';
+import { formatTimeDisplay, parseCtaDate, filterStaleArrivals } from '@/lib/utilities/timeUtils';
 import type { Station, StationStop, Arrival } from '@/lib/types/cta';
 
 interface FavoriteStopCardProps {
@@ -106,6 +106,12 @@ export const FavoriteStopCard: React.FC<FavoriteStopCardProps> = ({
     isError,
   } = useStopArrivals(stop.stopId);
   
+  // Filter stale arrivals
+  const filteredArrivals = React.useMemo(() => {
+    if (!stopArrivals?.arrivals) return [];
+    return filterStaleArrivals(stopArrivals.arrivals, 2, currentTime);
+  }, [stopArrivals, currentTime]);
+  
   return (
     <Card className={cn('p-4 rounded-lg', className)}>
       {/* Favorite stop header */}
@@ -131,13 +137,13 @@ export const FavoriteStopCard: React.FC<FavoriteStopCardProps> = ({
           <AlertCircle className="h-4 w-4 mr-2" />
           <p className="text-sm">Failed to load arrivals</p>
         </div>
-      ) : !stopArrivals?.arrivals?.length ? (
+      ) : !filteredArrivals.length ? (
         <div className="text-center py-2">
           <p className="text-sm text-muted-foreground">No upcoming arrivals</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {stopArrivals.arrivals.slice(0, 2).map((arrival, idx) => (
+          {filteredArrivals.slice(0, 2).map((arrival, idx) => (
             <div key={idx} className="flex items-center justify-between border-b pb-2 last:border-b-0 last:pb-0">
               <div className="flex items-center gap-2">
                 <RouteIndicator route={arrival.rt} size="sm" />

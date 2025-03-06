@@ -12,7 +12,7 @@ const CACHE_TTL_SECONDS = 30 // 30 seconds TTL for fresh cache
 const STALE_TTL_SECONDS = 60 // 1 minute max staleness (for backup)
 const CTA_API_TIMEOUT_MS = 5000 // 5 seconds timeout for CTA API
 const MAX_RETRIES = 2 // Maximum number of retries for CTA API
-const MAX_PAST_MINUTES = 5 // Increased from 2 to 5 to be more lenient
+const MAX_PAST_MINUTES = 2 // 2 minutes in the past to still show an arrival
 const TIME_OFFSET_MS = 5000 // Adjustable time offset to correct for server/CTA time differences
 
 /**
