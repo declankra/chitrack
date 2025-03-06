@@ -182,6 +182,43 @@ Below is a suggested approach to keep data dynamic and accurate while reducing u
    - Typically, you fetch the **positions** (if you are showing a live map of all trains) every ~20-30 seconds.  
    - For “Follow This Train,” caching is only relevant if the same run number is being viewed multiple times. This is typically less frequent. You may do a direct pass-through or short (e.g., 15s) cache if your front end refreshes frequently.
 
+## 5b. Actual Caching Strategy
+## Multi-Layered Caching Strategy
+
+Your system has a sophisticated multi-layered caching approach:
+
+### Layer 1: Redis Server Cache
+
+- **CACHE_TTL_SECONDS = 30**: Data in Redis is considered "fresh" for 30 seconds
+- **STALE_TTL_SECONDS = 60**: Redis will keep data for up to 60 seconds before complete eviction
+- The API implements a "stale-while-revalidate" pattern, where stale (but not too stale) data is returned immediately while a background refresh occurs
+
+### Layer 2: React Query Client Cache
+
+- **refetchInterval: 30000**: Client automatically requests new data every 30 seconds
+- **staleTime: 15000**: Client considers data "fresh" for 15 seconds, after which it's marked stale
+
+### Layer 3: UI Time Refreshes
+
+- Originally refreshed every 60 seconds (too slow)
+- Now refreshes every 15 seconds (more responsive)
+
+### How These Timers Work Together
+
+- **UI Time Updates (15s)**: This doesn't actually fetch new data - it just recalculates the display of existing data based on the current time. This is critical for showing accurate "minutes until arrival" and correctly handling "DUE" status.
+- **React Query Stale Time (15s)**: When data becomes stale after 15 seconds, React Query will prefer to use a cached version for immediate display, but knows it should refresh when possible.
+- **Data Refresh Interval (30s)**: Every 30 seconds, React Query triggers a new API request regardless of user interaction.
+- **Redis Cache (30s fresh / 60s max)**: When the API receives a request, it can return "fresh enough" data from Redis while triggering a background refresh.
+
+### The Improved Experience
+
+With our changes, the system now works like this:
+
+- **More Accurate Time Display**: Even without new API data, the UI updates every 15 seconds, ensuring minutes-until-arrival and "DUE" status are current
+- **Clean Data**: Past arrivals (>2 minutes old) are filtered out server-side, so even with caching, you'll never see significantly outdated arrivals
+- **Efficient Network Usage**: The client still only fetches new data every 30 seconds, which is a good balance between freshness and network efficiency
+- **Responsive Feel**: The combination of more frequent UI updates with the arrival filtering gives users a much more accurate impression of train status without overloading the CTA API
+
 ---
 
 ## 6. Implementation Details & Best Practices
