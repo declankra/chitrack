@@ -109,11 +109,11 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
   // Animation state for refresh button
   const { isAnimating, triggerAnimation } = useRefreshAnimation();
   
-  // Update current time every minute
+  // Update current time every 15 seconds instead of 60 seconds
   useEffect(() => {
     const intervalId = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000);
+    }, 15000); // 15 seconds
     
     return () => clearInterval(intervalId);
   }, []);

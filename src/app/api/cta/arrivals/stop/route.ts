@@ -12,6 +12,8 @@ const CACHE_TTL_SECONDS = 30 // 30 seconds TTL for fresh cache
 const STALE_TTL_SECONDS = 60 // 1 minute max staleness (for backup)
 const CTA_API_TIMEOUT_MS = 5000 // 5 seconds timeout for CTA API
 const MAX_RETRIES = 2 // Maximum number of retries for CTA API
+const MAX_PAST_MINUTES = 5 // Increased from 2 to 5 to be more lenient
+const TIME_OFFSET_MS = 5000 // Adjustable time offset to correct for server/CTA time differences
 
 /**
  * Helper to parse arrival time strings and return a numerical timestamp.
@@ -45,6 +47,45 @@ function parseArrivalTime(timeStr: string): number {
     console.warn("Error parsing arrival time:", timeStr, error);
     return Infinity;
   }
+}
+
+/**
+ * Checks if an arrival time is not too far in the past
+ * @param arrivalTime CTA arrival time string
+ * @returns boolean indicating if arrival should be included
+ */
+function isRelevantArrival(arrivalTime: string): boolean {
+  const timestamp = parseArrivalTime(arrivalTime);
+  if (timestamp === Infinity) return true; // If we can't parse, include it
+  
+  const now = Date.now() + TIME_OFFSET_MS; // Apply time offset correction
+  const diffMs = timestamp - now;
+  const diffMinutes = diffMs / 60000;
+  
+  // Debug logging to help diagnose time-related issues
+  const isRelevant = diffMinutes > -MAX_PAST_MINUTES;
+  console.log(`Arrival time: ${arrivalTime}, diff minutes: ${diffMinutes.toFixed(2)}, relevant: ${isRelevant}`);
+  
+  // Include if it's in the future or within MAX_PAST_MINUTES of the past
+  return isRelevant;
+}
+
+/**
+ * Checks if there are any relevant arrivals in the array
+ * If not, return all arrivals to avoid empty results
+ */
+function filterRelevantArrivals(arrivals: Arrival[]): Arrival[] {
+  // First attempt to filter by our relevance criteria
+  const relevantArrivals = arrivals.filter(arr => isRelevantArrival(arr.arrT));
+  
+  // If filtering removed ALL arrivals, return the original set
+  // This prevents empty results due to clock synchronization issues
+  if (relevantArrivals.length === 0 && arrivals.length > 0) {
+    console.log(`Filtering removed all ${arrivals.length} arrivals - returning all instead`);
+    return arrivals;
+  }
+  
+  return relevantArrivals;
 }
 
 /**
@@ -175,6 +216,8 @@ async function fetchFreshStopData(stopId: string, cacheKey: string): Promise<Sto
     }
 
     const rawArrivals: Arrival[] = data.ctatt.eta;
+    console.log(`CTA API returned ${rawArrivals.length} raw arrivals for stop ${stopId}`);
+    
     let result: StopArrivalsResponse;
     
     if (rawArrivals.length === 0) {
@@ -191,11 +234,16 @@ async function fetchFreshStopData(stopId: string, cacheKey: string): Promise<Sto
       const stpDe = rawArrivals[0].stpDe || ""; // Add fallback for empty stop description
       const route = rawArrivals[0].rt;
 
-      // sort them by arrival time ascending
-      rawArrivals.sort((a, b) => parseArrivalTime(a.arrT) - parseArrivalTime(b.arrT));
+      // Filter out arrivals that are too far in the past
+      // But make sure we don't end up with empty results
+      const relevantArrivals = filterRelevantArrivals(rawArrivals);
+      console.log(`After filtering: ${relevantArrivals.length} relevant arrivals remain`);
+      
+      // Sort remaining arrivals by time ascending
+      relevantArrivals.sort((a, b) => parseArrivalTime(a.arrT) - parseArrivalTime(b.arrT));
 
-      // take up to 3
-      const arrivals = rawArrivals.slice(0, 3);
+      // Take up to 3
+      const arrivals = relevantArrivals.slice(0, 3);
 
       // final response object
       result = {

@@ -101,15 +101,15 @@ export default function ArrivalBoard({
   // Animation state for refresh button
   const { isAnimating, triggerAnimation } = useRefreshAnimation();
 
-  // Set up a timer to update the display every minute
+  // Set up a timer to update the display every 15 seconds
   useEffect(() => {
     // Update immediately to sync with real time
     setCurrentTime(new Date());
     
-    // Set interval to update every minute
+    // Set interval to update every 15 seconds (changed from 60)
     const intervalId = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // 60 seconds = 1 minute
+    }, 15000); // 15 seconds
     
     // Clean up on unmount
     return () => clearInterval(intervalId);

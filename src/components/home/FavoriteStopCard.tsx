@@ -90,11 +90,11 @@ export const FavoriteStopCard: React.FC<FavoriteStopCardProps> = ({
 }) => {
   const [currentTime, setCurrentTime] = React.useState<Date>(new Date());
   
-  // Update current time every minute
+  // Update current time every 15 seconds instead of 60 seconds
   React.useEffect(() => {
     const intervalId = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000);
+    }, 15000);
     
     return () => clearInterval(intervalId);
   }, []);

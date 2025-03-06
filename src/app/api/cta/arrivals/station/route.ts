@@ -15,23 +15,58 @@ const STALE_TTL_SECONDS = 60; // 1 minute max staleness (for backup)
 const CTA_API_TIMEOUT_MS = 5000; // 5 seconds timeout for CTA API
 const MAX_RETRIES = 2; // Maximum number of retries for CTA API
 const THROTTLE_MS = 10000; // 10 seconds minimum between full refreshes
+const MAX_PAST_MINUTES = 5; // Increased from 2 to 5 to be more lenient
+const TIME_OFFSET_MS = 5000; // Adjustable time offset to correct for server/CTA time differences
 
 /**
  * Helper to parse "YYYYMMDD HH:mm:ss" and return JS Date timestamp.
  * If parsing fails, returns Infinity so sorting still works.
  */
 function parseArrivalTime(ctaTime: string): number {
-  // Example ctaTime format: "20230419 08:35:34"
-  const [datePart, timePart] = ctaTime.split(" ");
-  if (!datePart || !timePart) return Infinity;
-  const year = +datePart.slice(0, 4);
-  const month = +datePart.slice(4, 6) - 1; // zero-based
-  const day = +datePart.slice(6, 8);
+  try {
+    // Check if the string is in ISO 8601 format (contains 'T' and possibly 'Z')
+    if (ctaTime.includes('T')) {
+      const date = new Date(ctaTime);
+      if (!isNaN(date.getTime())) {
+        return date.getTime();
+      }
+    }
+    
+    // Handle CTA format "YYYYMMDD HH:mm:ss"
+    const [datePart, timePart] = ctaTime.split(" ");
+    if (!datePart || !timePart) return Infinity;
+    const year = +datePart.slice(0, 4);
+    const month = +datePart.slice(4, 6) - 1; // zero-based
+    const day = +datePart.slice(6, 8);
 
-  const [hour, minute, second] = timePart.split(":").map((x) => +x);
-  const parsedDate = new Date(year, month, day, hour, minute, second);
-  if (Number.isNaN(parsedDate.getTime())) return Infinity;
-  return parsedDate.getTime();
+    const [hour, minute, second] = timePart.split(":").map((x) => +x);
+    const parsedDate = new Date(year, month, day, hour, minute, second);
+    if (Number.isNaN(parsedDate.getTime())) return Infinity;
+    return parsedDate.getTime();
+  } catch (error) {
+    console.error("Error parsing CTA date:", error);
+    return Infinity;
+  }
+}
+
+/**
+ * Checks if an arrival time is not too far in the past
+ * @param arrivalTime CTA arrival time string
+ * @returns boolean indicating if arrival should be included
+ */
+function isRelevantArrival(arrivalTime: string): boolean {
+  const timestamp = parseArrivalTime(arrivalTime);
+  if (timestamp === Infinity) return true; // If we can't parse, include it
+  
+  const now = Date.now() + TIME_OFFSET_MS; // Apply time offset correction
+  const diffMs = timestamp - now;
+  const diffMinutes = diffMs / 60000;
+  
+  // Debug logging to help diagnose time-related issues
+  const isRelevant = diffMinutes > -MAX_PAST_MINUTES;
+  
+  // Include if it's in the future or within MAX_PAST_MINUTES of the past
+  return isRelevant;
 }
 
 /**
@@ -75,6 +110,19 @@ async function fetchCtaApiWithRetry(url: string, retryCount = 0): Promise<Respon
  * Process raw arrivals data into grouped station format
  */
 function processArrivals(rawArrivals: Arrival[]): StationArrivalsResponse[] {
+  console.log(`Processing ${rawArrivals.length} raw arrivals`);
+  
+  // Filter arrivals that are not too far in the past
+  const relevantArrivals = rawArrivals.filter(arr => isRelevantArrival(arr.arrT));
+  console.log(`After filtering: ${relevantArrivals.length} relevant arrivals remain`);
+  
+  // Important: if filtering removed all arrivals, use all arrivals instead
+  // This prevents empty results due to clock synchronization issues
+  const arrivalsToProcess = relevantArrivals.length > 0 ? relevantArrivals : rawArrivals;
+  if (relevantArrivals.length === 0 && rawArrivals.length > 0) {
+    console.log(`Filtering removed all arrivals - using all ${rawArrivals.length} instead`);
+  }
+  
   // Group by station -> stops
   const stationMap: Record<string, {
     stationId: string;
@@ -87,7 +135,7 @@ function processArrivals(rawArrivals: Arrival[]): StationArrivalsResponse[] {
     }>;
   }> = {};
 
-  for (const arrival of rawArrivals) {
+  for (const arrival of arrivalsToProcess) {
     // Ensure station object
     if (!stationMap[arrival.staId]) {
       stationMap[arrival.staId] = {
@@ -231,6 +279,8 @@ async function fetchFreshData(stationIds: string[], cacheKey: string): Promise<S
     }
 
     const rawArrivals: Arrival[] = data.ctatt.eta;
+    console.log(`CTA API returned ${rawArrivals.length} raw arrivals for stations ${stationIds.join(",")}`);
+    
     const result = processArrivals(rawArrivals);
     
     // Cache the results
