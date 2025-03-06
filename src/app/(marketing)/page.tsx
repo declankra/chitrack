@@ -37,7 +37,7 @@ const Features = () => (
           },
           {
             icon: MapPin,
-            title: "Discover new stations",
+            title: "Quickly find new stations",
             description:
               "Use the slickest map ever made to view stations outside your normal route.",
           },
