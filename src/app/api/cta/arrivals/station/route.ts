@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 // Configuration constants
 const CTA_API_KEY = process.env.CTA_TRAIN_API_KEY;
 const CACHE_TTL_SECONDS = 30; // 30 seconds TTL for fresh cache
-const STALE_TTL_SECONDS = 60; // 1 minute max staleness (for backup)
+const STALE_TTL_SECONDS = 30; // Reduced from 60 seconds to 30 seconds for backup
 const CTA_API_TIMEOUT_MS = 5000; // 5 seconds timeout for CTA API
 const MAX_RETRIES = 2; // Maximum number of retries for CTA API
 const THROTTLE_MS = 10000; // 10 seconds minimum between full refreshes
