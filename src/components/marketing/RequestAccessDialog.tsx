@@ -74,19 +74,19 @@ export function RequestAccessDialog({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Request Early Access</DialogTitle>
+          <DialogTitle>Request Free Limetime Access</DialogTitle>
           <DialogDescription>
-            Enter your email to join our waitlist and get early access to ChiTrack.
+            Enter your email to join our waitlist and get free lifetime access to ChiTrack when it launches
           </DialogDescription>
         </DialogHeader>
 
         {success ? (
           <div className="py-6 text-center">
             <p className="text-green-600 font-medium mb-4">
-              Thank you for your interest!
+              Thank you for your support!
             </p>
             <p className="text-muted-foreground">
-              We've added you to our waitlist and will notify you when ChiTrack is on the App Store.
+              We've added you to our waitlist and will notify you when ChiTrack is on the App Store and ready for your download.
             </p>
             <Button 
               onClick={handleClose} 
@@ -118,7 +118,7 @@ export function RequestAccessDialog({
                 type="submit" 
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Submitting..." : "Request Access"}
+                {isSubmitting ? "Submitting..." : "I've had enough of TransitStop"}
               </Button>
             </DialogFooter>
           </form>

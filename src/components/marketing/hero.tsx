@@ -58,7 +58,7 @@ export function Hero() {
               className="w-full sm:w-auto"
               onClick={() => setIsDialogOpen(true)}
             >
-              Request Access
+              Request Free Limetime Access
             </Button>
             
             {/* Request Access Dialog */}
