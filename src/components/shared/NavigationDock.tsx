@@ -1,4 +1,6 @@
 // src/components/shared/NavigationDock.tsx
+'use client';
+
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Home, Search, Map } from 'lucide-react';
