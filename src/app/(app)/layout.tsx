@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import { StationsProvider } from '@/lib/providers/StationsProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-import { SpeedInsights } from "@vercel/speed-insights/next"
 
 export default function AppLayout({
   children,
@@ -51,7 +50,6 @@ export default function AppLayout({
               {/* Main content without bottom padding to allow content to flow behind dock */}
               <main className="flex-1 overflow-y-auto px-4 pb-6">
                 {children}
-                <SpeedInsights />
               </main>
 
               {/* Navigation Dock positioned absolutely */}
