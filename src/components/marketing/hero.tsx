@@ -1,11 +1,17 @@
+// src/components/marketing/hero.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { IPhoneFrame } from "@/components/marketing/iphone";
 import { Users } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { RequestAccessDialog } from "@/components/marketing/RequestAccessDialog";
 
 // Hero section component
 export function Hero() {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   return (
     <section className="relative w-full overflow-hidden bg-background pb-20 pt-10 md:pt-0">
       <div className="container relative z-10 mx-auto px-4">
@@ -34,10 +40,20 @@ export function Hero() {
               </p>
             </div>
 
-            {/* CTA Button */}
-            <Button size="lg" className="w-full sm:w-auto">
-              Download on the App Store
+            {/* Request Access Button */}
+            <Button 
+              size="lg" 
+              className="w-full sm:w-auto"
+              onClick={() => setIsDialogOpen(true)}
+            >
+              Request Access
             </Button>
+            
+            {/* Request Access Dialog */}
+            <RequestAccessDialog 
+              isOpen={isDialogOpen} 
+              onClose={() => setIsDialogOpen(false)} 
+            />
           </div>
 
           {/* iPhone mockup */}
