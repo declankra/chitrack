@@ -1,6 +1,6 @@
 ---
 description: Designing and Styling the UI
-globs: src/components/**/*.tsx
+globs: src/components/**/*.tsx, src/app/(marketing)/**/*.tsx, src/app/(app)/**/*.tsx
 alwaysApply: false
 ---
 ### Style & Design
