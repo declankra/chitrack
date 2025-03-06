@@ -44,7 +44,7 @@ export function Hero() {
           <div className="relative mx-auto w-full max-w-[280px] md:max-w-none">
             <IPhoneFrame 
               className="w-full"
-              image="/images/app-screenshot.png" 
+              image="/app-preview.webp" 
               imageAlt="ChiTrack app showing train arrivals"
             >
               {/* Fallback content if image doesn't load */}
