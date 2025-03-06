@@ -17,9 +17,9 @@ const Features = () => (
   <section className="w-full bg-muted/50 py-20">
     <div className="container mx-auto px-4">
       <div className="mb-12 text-center">
-        <h2 className="mb-4 text-3xl font-bold">Why professionals choose ChiTrack</h2>
+        <h2 className="mb-4 text-3xl font-bold">Why Professionals Choose ChiTrack</h2>
         <p className="text-muted-foreground">
-          Designed for efficiency, built for reliability
+          The best CTA Train Tracking App in the City of Chicago
         </p>
       </div>
 

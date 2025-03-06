@@ -3,10 +3,12 @@
 
 import { Button } from "@/components/ui/button";
 import { IPhoneFrame } from "@/components/marketing/iphone";
-import { Users } from "lucide-react";
+import { Users, TrainFront, ArrowRight } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 import { RequestAccessDialog } from "@/components/marketing/RequestAccessDialog";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { TextShimmer } from "@/components/ui/text-shimmer";
 
 // Hero section component
 export function Hero() {
@@ -19,14 +21,24 @@ export function Hero() {
           {/* Text content */}
           <div className="flex flex-col justify-center space-y-8">
             <div className="space-y-6">
-              <h2 className="text-sm font-medium tracking-wider text-secondary uppercase">
-                Chicago Transit Tracking Done Right
-              </h2>
+              <div className="relative">
+                <h2 className="text-sm font-medium tracking-wider text-secondary uppercase">
+                  Chicago Transit Tracking Done Right
+                </h2>
+                <TextShimmer 
+                  as="h2" 
+                  className="text-sm font-medium tracking-wider uppercase absolute top-0 left-0 opacity-70"
+                  duration={4}
+                  spread={0.5}
+                >
+                  Chicago Transit Tracking Done Right
+                </TextShimmer>
+              </div>
               <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
                 The Chicago CTA Tracker Ventra Couldn't Give You
               </h1>
               <p className="text-xl text-muted-foreground">
-                Save time and travel in style with real-time CTA arrivals, beautifully designed for Chicago professionals.
+                Save time and travel in style with real-time CTA arrivals, beautifully designed for Chicago professionals
               </p>
             </div>
             
@@ -36,7 +48,7 @@ export function Hero() {
                 <Users className="h-8 w-8 text-muted-foreground" />
               </div>
               <p className="text-sm text-muted-foreground">
-                Trusted by 1,000+ Chicago commuters
+                Trusted by 1,000+ Chicago commuters (soon)
               </p>
             </div>
 
@@ -58,6 +70,27 @@ export function Hero() {
 
           {/* iPhone mockup */}
           <div className="relative mx-auto w-full max-w-[280px] md:max-w-none">
+            {/* Announcement pill */}
+            <div className="absolute -top-14 left-0 right-0 flex justify-center w-full">
+              <Link href="/home">
+                <motion.div 
+                  className="flex items-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-medium text-white shadow-lg hover:bg-black/90 transition-colors"
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <motion.div
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                  >
+                    <TrainFront className="h-4 w-4" />
+                  </motion.div>
+                  Try web demo!
+                  <ArrowRight className="h-4 w-4" />
+                </motion.div>
+              </Link>
+            </div>
+            
             <IPhoneFrame 
               className="w-full"
               image="/app-preview.webp" 
