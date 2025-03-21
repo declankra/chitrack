@@ -62,7 +62,7 @@ export const useStationArrivals = (
   }, []);
   
   const query = useQuery<StationArrivalsResponse[], Error>({
-    queryKey: ['stationArrivals', stationId],
+    queryKey: ['stationArrivals', stationId, currentTime.getTime()], // Add currentTime to force refetch
     queryFn: async () => {
       // Abort any previous request
       if (abortControllerRef.current) {
@@ -79,12 +79,15 @@ export const useStationArrivals = (
       try {
         const fetchOptions: RequestInit = {
           headers: {
-            'Cache-Control': 'no-cache',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
             // Force refresh when explicitly requested by the user
             'x-force-refresh': mergedOptions.forceRefresh ? 'true' : 'false',
             // Enable background refresh for automatic updates
             'x-allow-background': mergedOptions.allowBackground ? 'true' : 'false'
-          }
+          },
+          cache: 'no-store' // Ensure fetch doesn't use browser cache
         };
         
         // Only add signal if AbortController is supported
@@ -92,8 +95,12 @@ export const useStationArrivals = (
           fetchOptions.signal = abortControllerRef.current.signal;
         }
         
+        // Add timestamp to URL to bypass browser cache
+        const timestamp = new Date().getTime();
+        const cacheBreaker = `&_=${timestamp}`;
+        
         // Set custom headers to help the API determine caching strategy
-        const response = await fetch(`/api/cta/arrivals/station?stations=${stationId}`, fetchOptions);
+        const response = await fetch(`/api/cta/arrivals/station?stations=${stationId}${cacheBreaker}`, fetchOptions);
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status} – ${response.statusText || 'Network error'}`);
@@ -129,6 +136,9 @@ export const useStationArrivals = (
     enabled: !!stationId && mergedOptions.enabled,
     refetchInterval: mergedOptions.refetchInterval,
     staleTime: mergedOptions.staleTime,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true
   });
   
   // Manual refresh function with query invalidation
