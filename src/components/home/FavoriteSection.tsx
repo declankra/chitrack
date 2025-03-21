@@ -120,13 +120,6 @@ export const FavoriteSection: React.FC<FavoriteSectionProps> = ({
             />
           ))}
         </div>
-        
-        {/* Link to manage favorites - Added pb-16 for dock clearance */}
-        <div className="mt-4 pb-16 flex justify-center">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/settings">Manage Favorites</Link>
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );
