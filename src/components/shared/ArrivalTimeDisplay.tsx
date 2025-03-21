@@ -64,7 +64,7 @@ const ArrivalTimeDisplay: React.FC<{
     return (
       <div className="flex flex-col items-end">
         <span className="flex items-baseline gap-1">
-          <span className="text-lg font-bold">1 ☝️</span>
+          <span className="text-lg font-bold">☝️</span>
           <span className="text-sm font-normal text-muted-foreground">min</span>
         </span>
         <span className="text-xs text-muted-foreground">
