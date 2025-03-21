@@ -31,7 +31,7 @@ interface UseStationArrivalsOptions {
 const defaultOptions: UseStationArrivalsOptions = {
   enabled: true,
   refetchInterval: 30000, // 30 seconds
-  staleTime: 15000,       // 15 seconds
+  staleTime: 0,           // Set to 0 to avoid stale cache issue
   forceRefresh: false,    // Changed from true to avoid unnecessary force refreshes
   allowBackground: true
 };
