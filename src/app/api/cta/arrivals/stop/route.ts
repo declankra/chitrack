@@ -333,15 +333,12 @@ export async function GET(request: NextRequest) {
         );
       }
       
-      // Return cached data immediately with cache control headers
+      // Return cached data immediately
       return NextResponse.json(cachedData, {
         headers: {
           'X-Cache': 'HIT',
           'X-Cache-Age': cacheTimestamp ? `${(Date.now() - cacheTimestamp) / 1000}` : 'unknown',
-          'X-Cache-Fresh': isFreshData ? 'true' : 'false',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          'X-Cache-Fresh': isFreshData ? 'true' : 'false'
         }
       });
     }
@@ -356,10 +353,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result, {
       headers: {
         'X-Cache': 'MISS',
-        'X-Processing-Time': `${processingTime}`,
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
+        'X-Processing-Time': `${processingTime}`
       }
     });
   } catch (error: any) {

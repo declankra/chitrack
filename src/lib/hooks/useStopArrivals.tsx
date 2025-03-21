@@ -63,7 +63,7 @@ export const useStopArrivals = (
   }, []);
   
   const query = useQuery<StopArrivalsResponse, Error>({
-    queryKey: ['stopArrivals', stopId, currentTime.getTime()], // Add currentTime to force refetch
+    queryKey: ['stopArrivals', stopId],
     queryFn: async () => {
       // Abort any previous request
       if (abortControllerRef.current) {
@@ -80,13 +80,10 @@ export const useStopArrivals = (
       try {
         const fetchOptions: RequestInit = {
           headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0',
+            'Cache-Control': 'no-cache',
             // Force refresh when explicitly requested by the user
             'x-force-refresh': mergedOptions.forceRefresh ? 'true' : 'false',
-          },
-          cache: 'no-store' // Ensure fetch doesn't use browser cache
+          }
         };
         
         // Only add signal if AbortController is supported
@@ -94,12 +91,8 @@ export const useStopArrivals = (
           fetchOptions.signal = abortControllerRef.current.signal;
         }
         
-        // Add timestamp to URL to bypass browser cache
-        const timestamp = new Date().getTime();
-        const cacheBreaker = `&_=${timestamp}`;
-        
         // Set custom headers to help the API determine caching strategy
-        const response = await fetch(`/api/cta/arrivals/stop?stopId=${stopId}${cacheBreaker}`, fetchOptions);
+        const response = await fetch(`/api/cta/arrivals/stop?stopId=${stopId}`, fetchOptions);
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status} – ${response.statusText || 'Network error'}`);
@@ -135,9 +128,6 @@ export const useStopArrivals = (
     enabled: !!stopId && mergedOptions.enabled,
     refetchInterval: mergedOptions.refetchInterval,
     staleTime: mergedOptions.staleTime,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true
   });
   
   // Manual refresh function with query invalidation
@@ -185,7 +175,7 @@ export const useMultipleStopArrivals = (
   }, []);
   
   const query = useQuery<Record<string, StopArrivalsResponse>, Error>({
-    queryKey: ['multipleStopArrivals', validStopIds, currentTime.getTime()], // Add currentTime to force refetch
+    queryKey: ['multipleStopArrivals', validStopIds],
     queryFn: async () => {
       // Abort any previous request
       if (abortControllerRef.current) {
@@ -207,12 +197,9 @@ export const useMultipleStopArrivals = (
           validStopIds.map(async (stopId) => {
             const fetchOptions: RequestInit = {
               headers: {
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0',
+                'Cache-Control': 'no-cache',
                 'x-force-refresh': mergedOptions.forceRefresh ? 'true' : 'false',
-              },
-              cache: 'no-store' // Ensure fetch doesn't use browser cache
+              }
             };
             
             // Only add signal if AbortController is supported
@@ -220,11 +207,7 @@ export const useMultipleStopArrivals = (
               fetchOptions.signal = abortControllerRef.current.signal;
             }
             
-            // Add timestamp to URL to bypass browser cache
-            const timestamp = new Date().getTime();
-            const cacheBreaker = `&_=${timestamp}`;
-            
-            const response = await fetch(`/api/cta/arrivals/stop?stopId=${stopId}${cacheBreaker}`, fetchOptions);
+            const response = await fetch(`/api/cta/arrivals/stop?stopId=${stopId}`, fetchOptions);
             
             if (!response.ok) {
               throw new Error(`Failed to fetch arrivals for stop ${stopId}`);
@@ -264,9 +247,6 @@ export const useMultipleStopArrivals = (
     enabled: validStopIds.length > 0 && mergedOptions.enabled,
     refetchInterval: mergedOptions.refetchInterval,
     staleTime: mergedOptions.staleTime,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true
   });
   
   // Manual refresh function with query invalidation
