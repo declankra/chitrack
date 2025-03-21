@@ -25,15 +25,17 @@ interface UseStopArrivalsOptions {
   enabled?: boolean;
   refetchInterval?: number;
   staleTime?: number;
+  cacheTime?: number;
   forceRefresh?: boolean;
   allowBackground?: boolean;
 }
 
 const defaultOptions: UseStopArrivalsOptions = {
   enabled: true,
-  refetchInterval: 30000, // 30 seconds
-  staleTime: 0,           // Set to 0 to avoid stale cache issue
-  forceRefresh: false,    // Changed from true to avoid unnecessary force refreshes
+  refetchInterval: 15000,    // Reduced to 15 seconds for more frequent updates
+  staleTime: 1000,          // 1 second stale time to allow for some caching but quick invalidation
+  cacheTime: 30000,         // 30 seconds cache time
+  forceRefresh: false,      // Keep false by default
   allowBackground: true
 };
 
@@ -63,7 +65,7 @@ export const useStopArrivals = (
   }, []);
   
   const query = useQuery<StopArrivalsResponse, Error>({
-    queryKey: ['stopArrivals', stopId],
+    queryKey: ['stopArrivals', stopId, currentTime.getTime()],
     queryFn: async () => {
       // Abort any previous request
       if (abortControllerRef.current) {
