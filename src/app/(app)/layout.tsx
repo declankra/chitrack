@@ -3,8 +3,9 @@
 
 import { usePathname } from 'next/navigation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { TimeProvider } from '@/lib/providers/TimeProvider';
 
 // Import without SSR
 const NavigationDock = dynamic(
@@ -25,26 +26,40 @@ export default function AppLayout({
 }>) {
   const pathname = usePathname();
   const shouldShowDock = !['/'].includes(pathname);
+  const queryClientRef = useRef<QueryClient | null>(null);
 
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            refetchOnWindowFocus: false,
-            retry: 3,
-          },
+  // Create or reuse a query client
+  if (!queryClientRef.current) {
+    queryClientRef.current = new QueryClient({
+      defaultOptions: {
+        queries: {
+          // General settings for all queries
+          refetchOnWindowFocus: true, // Enable refetch when window gets focus
+          retry: 1, // Only retry once to prevent hammering API
+          retryDelay: 1000, // 1 second retry delay
+          // Use a consistent 15s cache time for quick updates
+          staleTime: 0, // All data is immediately considered stale, triggering refetch
+          gcTime: 15 * 1000, // 15 seconds cache max
+          refetchInterval: 15 * 1000, // Refetch every 15 seconds
+          refetchOnMount: true, // Refetch on component mount
+          refetchOnReconnect: true, // Refetch on network reconnect
         },
-      })
-  );
+      },
+    });
+  }
 
   // Set specific query defaults after client initialization
   useEffect(() => {
-    // For station metadata, use a 7-day stale time to match server-side caching
+    const queryClient = queryClientRef.current;
+    if (!queryClient) return;
+
+    // For station metadata, use a longer cache time (7 days)
     queryClient.setQueryDefaults(['stations'], {
       staleTime: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+      gcTime: 7 * 24 * 60 * 60 * 1000, // 7 days cache
+      refetchInterval: false, // Don't auto-refetch station metadata
     });
-  }, [queryClient]);
+  }, []);
 
   return (
     // Full-width background container
@@ -55,8 +70,10 @@ export default function AppLayout({
         <div className="h-12 bg-background" />
         
         {/* Main scrollable content area without bottom padding for dock */}
-        <QueryClientProvider client={queryClient}>
-          <StationsProviderWithoutSSR>
+        <QueryClientProvider client={queryClientRef.current}>
+        <TimeProvider>
+
+        <StationsProviderWithoutSSR>
             <div className="h-[calc(844px-3rem)] overflow-hidden flex flex-col relative">
               {/* Main content without bottom padding to allow content to flow behind dock */}
               <main className="flex-1 overflow-y-auto px-4 pb-6">
@@ -67,6 +84,7 @@ export default function AppLayout({
               {shouldShowDock && <NavigationDock />}
             </div>
           </StationsProviderWithoutSSR>
+        </TimeProvider>
         </QueryClientProvider>
       </div>
     </div>

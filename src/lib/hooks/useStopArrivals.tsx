@@ -1,8 +1,25 @@
 // src/lib/hooks/useStopArrivals.tsx
 
-import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useRef } from 'react';
+import { useTime } from '@/lib/providers/TimeProvider';
 import type { StopArrivalsResponse } from '@/lib/types/cta';
+
+// Helper function to create an AbortController with React Native compatibility
+const createAbortController = () => {
+  // Make sure AbortController exists (it might not in some older React Native environments)
+  if (typeof AbortController !== 'undefined') {
+    return new AbortController();
+  }
+  
+  // Fallback for environments without AbortController
+  return {
+    signal: { aborted: false },
+    abort: () => { 
+      (this as any).signal.aborted = true;
+    }
+  };
+};
 
 interface UseStopArrivalsOptions {
   enabled?: boolean;
@@ -16,7 +33,7 @@ const defaultOptions: UseStopArrivalsOptions = {
   enabled: true,
   refetchInterval: 30000, // 30 seconds
   staleTime: 15000,       // 15 seconds
-  forceRefresh: true,
+  forceRefresh: false,    // Changed from true to avoid unnecessary force refreshes
   allowBackground: true
 };
 
@@ -30,55 +47,104 @@ export const useStopArrivals = (
   stopId: string,
   options: UseStopArrivalsOptions = {}
 ) => {
+  const { currentTime, updateLastRefreshTime } = useTime();
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const mergedOptions = { ...defaultOptions, ...options };
+  const queryClient = useQueryClient();
+  const abortControllerRef = useRef<any>(null);
   
-  return {
-    ...useQuery<StopArrivalsResponse, Error>({
-      queryKey: ['stopArrivals', stopId],
-      queryFn: async () => {
-        if (!stopId) {
-          throw new Error('No stop ID provided');
+  // Cleanup any pending requests when unmounting
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+  
+  const query = useQuery<StopArrivalsResponse, Error>({
+    queryKey: ['stopArrivals', stopId],
+    queryFn: async () => {
+      // Abort any previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      // Create a new abort controller for this request
+      abortControllerRef.current = createAbortController();
+      
+      if (!stopId) {
+        throw new Error('No stop ID provided');
+      }
+      
+      try {
+        const fetchOptions: RequestInit = {
+          headers: {
+            'Cache-Control': 'no-cache',
+            // Force refresh when explicitly requested by the user
+            'x-force-refresh': mergedOptions.forceRefresh ? 'true' : 'false',
+          }
+        };
+        
+        // Only add signal if AbortController is supported
+        if (abortControllerRef.current.signal) {
+          fetchOptions.signal = abortControllerRef.current.signal;
         }
         
-        try {
-          // Set custom headers to help the API determine caching strategy
-          const response = await fetch(`/api/cta/arrivals/stop?stopId=${stopId}`, {
-            headers: {
-              'Cache-Control': 'no-cache',
-              // Force refresh when explicitly requested by the user
-              'x-force-refresh': mergedOptions.forceRefresh ? 'true' : 'false',
-              // Enable background refresh for automatic updates
-              'x-allow-background': mergedOptions.allowBackground ? 'true' : 'false'
-            }
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status} – ${response.statusText || 'Network error'}`);
-          }
-          
-          // Check cache status from response headers
-          const cacheStatus = response.headers.get('X-Cache');
-          const cacheAge = response.headers.get('X-Cache-Age');
-          const isFresh = response.headers.get('X-Cache-Fresh') === 'true';
-          
-          console.log(`Stop ${stopId} data: Cache ${cacheStatus}, Age: ${cacheAge}s, Fresh: ${isFresh}`);
-          
-          // Set last updated time
-          setLastUpdated(new Date());
-          
-          const data = await response.json();
-          return data as StopArrivalsResponse;
-        } catch (error) {
-          console.error(`Error fetching arrivals for stop ${stopId}:`, error);
-          throw error;
+        // Set custom headers to help the API determine caching strategy
+        const response = await fetch(`/api/cta/arrivals/stop?stopId=${stopId}`, fetchOptions);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} – ${response.statusText || 'Network error'}`);
         }
-      },
-      enabled: !!stopId && mergedOptions.enabled,
-      refetchInterval: mergedOptions.refetchInterval,
-      staleTime: mergedOptions.staleTime,
-    }),
-    lastUpdated
+        
+        // Check cache status from response headers for debugging
+        const cacheStatus = response.headers.get('X-Cache');
+        const cacheAge = response.headers.get('X-Cache-Age');
+        const isFresh = response.headers.get('X-Cache-Fresh') === 'true';
+        
+        console.log(`Stop ${stopId} data: Cache ${cacheStatus}, Age: ${cacheAge}s, Fresh: ${isFresh}`);
+        
+        // Update last refresh time in TimeProvider
+        updateLastRefreshTime();
+        
+        // Set last updated time
+        const newUpdateTime = new Date();
+        setLastUpdated(newUpdateTime);
+        
+        const data = await response.json();
+        return data as StopArrivalsResponse;
+      } catch (error) {
+        // Don't log aborted request errors - they're expected
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          console.log(`Request for stop ${stopId} was aborted`);
+          throw new Error('Request aborted');
+        }
+        
+        console.error(`Error fetching arrivals for stop ${stopId}:`, error);
+        throw error;
+      }
+    },
+    enabled: !!stopId && mergedOptions.enabled,
+    refetchInterval: mergedOptions.refetchInterval,
+    staleTime: mergedOptions.staleTime,
+  });
+  
+  // Manual refresh function with query invalidation
+  const refresh = async () => {
+    if (!stopId) return;
+    
+    // First invalidate the query to ensure we get fresh data
+    await queryClient.invalidateQueries({ queryKey: ['stopArrivals', stopId] });
+    
+    // Then trigger a refetch with the force refresh option
+    return query.refetch();
+  };
+  
+  return {
+    ...query,
+    lastUpdated,
+    refresh
   };
 };
 
@@ -92,62 +158,112 @@ export const useMultipleStopArrivals = (
   stopIds: string[],
   options: UseStopArrivalsOptions = {}
 ) => {
+  const { currentTime, updateLastRefreshTime } = useTime();
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const mergedOptions = { ...defaultOptions, ...options };
   const validStopIds = stopIds?.filter(Boolean) || [];
+  const queryClient = useQueryClient();
+  const abortControllerRef = useRef<any>(null);
   
-  return {
-    ...useQuery<Record<string, StopArrivalsResponse>, Error>({
-      queryKey: ['multipleStopArrivals', validStopIds],
-      queryFn: async () => {
-        if (!validStopIds.length) {
-          return {};
+  // Cleanup any pending requests when unmounting
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+  
+  const query = useQuery<Record<string, StopArrivalsResponse>, Error>({
+    queryKey: ['multipleStopArrivals', validStopIds],
+    queryFn: async () => {
+      // Abort any previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      // Create a new abort controller for this request
+      abortControllerRef.current = createAbortController();
+      
+      if (!validStopIds.length) {
+        return {};
+      }
+      
+      try {
+        const results: Record<string, StopArrivalsResponse> = {};
+        
+        // Fetch arrivals for each stop with a single Promise.all for better performance
+        await Promise.all(
+          validStopIds.map(async (stopId) => {
+            const fetchOptions: RequestInit = {
+              headers: {
+                'Cache-Control': 'no-cache',
+                'x-force-refresh': mergedOptions.forceRefresh ? 'true' : 'false',
+              }
+            };
+            
+            // Only add signal if AbortController is supported
+            if (abortControllerRef.current.signal) {
+              fetchOptions.signal = abortControllerRef.current.signal;
+            }
+            
+            const response = await fetch(`/api/cta/arrivals/stop?stopId=${stopId}`, fetchOptions);
+            
+            if (!response.ok) {
+              throw new Error(`Failed to fetch arrivals for stop ${stopId}`);
+            }
+            
+            // Check cache status from response headers for debugging
+            const cacheStatus = response.headers.get('X-Cache');
+            const cacheAge = response.headers.get('X-Cache-Age');
+            const isFresh = response.headers.get('X-Cache-Fresh') === 'true';
+            
+            console.log(`Stop ${stopId} data: Cache ${cacheStatus}, Age: ${cacheAge}s, Fresh: ${isFresh}`);
+            
+            // Update last refresh time in TimeProvider
+            updateLastRefreshTime();
+            
+            const data = await response.json();
+            results[stopId] = data;
+          })
+        );
+        
+        // Update last updated timestamp
+        const newUpdateTime = new Date();
+        setLastUpdated(newUpdateTime);
+        
+        return results;
+      } catch (error) {
+        // Don't log aborted request errors - they're expected
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          console.log(`Request for multiple stops was aborted`);
+          throw new Error('Request aborted');
         }
         
-        try {
-          const results: Record<string, StopArrivalsResponse> = {};
-          
-          // Fetch arrivals for each stop
-          await Promise.all(
-            validStopIds.map(async (stopId) => {
-              const response = await fetch(`/api/cta/arrivals/stop?stopId=${stopId}`, {
-                headers: {
-                  'Cache-Control': 'no-cache',
-                  'x-force-refresh': mergedOptions.forceRefresh ? 'true' : 'false',
-                  'x-allow-background': mergedOptions.allowBackground ? 'true' : 'false'
-                }
-              });
-              
-              if (!response.ok) {
-                throw new Error(`Failed to fetch arrivals for stop ${stopId}`);
-              }
-              
-              // Check cache status from response headers
-              const cacheStatus = response.headers.get('X-Cache');
-              const cacheAge = response.headers.get('X-Cache-Age');
-              const isFresh = response.headers.get('X-Cache-Fresh') === 'true';
-              
-              console.log(`Stop ${stopId} data: Cache ${cacheStatus}, Age: ${cacheAge}s, Fresh: ${isFresh}`);
-              
-              const data = await response.json();
-              results[stopId] = data;
-            })
-          );
-          
-          // Update last updated timestamp
-          setLastUpdated(new Date());
-          
-          return results;
-        } catch (error) {
-          console.error('Error fetching favorite stops arrivals:', error);
-          throw error;
-        }
-      },
-      enabled: validStopIds.length > 0 && mergedOptions.enabled,
-      refetchInterval: mergedOptions.refetchInterval,
-      staleTime: mergedOptions.staleTime,
-    }),
-    lastUpdated
+        console.error('Error fetching favorite stops arrivals:', error);
+        throw error;
+      }
+    },
+    enabled: validStopIds.length > 0 && mergedOptions.enabled,
+    refetchInterval: mergedOptions.refetchInterval,
+    staleTime: mergedOptions.staleTime,
+  });
+  
+  // Manual refresh function with query invalidation
+  const refresh = async () => {
+    if (!validStopIds.length) return;
+    
+    // First invalidate the query to ensure we get fresh data
+    await queryClient.invalidateQueries({ queryKey: ['multipleStopArrivals', validStopIds] });
+    
+    // Then trigger a refetch with the force refresh option
+    return query.refetch();
+  };
+  
+  return {
+    ...query,
+    lastUpdated,
+    refresh
   };
 };
 

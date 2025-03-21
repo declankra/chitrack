@@ -10,11 +10,11 @@ export const dynamic = 'force-dynamic';
 
 // Configuration constants
 const CTA_API_KEY = process.env.CTA_TRAIN_API_KEY;
-const CACHE_TTL_SECONDS = 30; // 30 seconds TTL for fresh cache
-const STALE_TTL_SECONDS = 30; // Reduced from 60 seconds to 30 seconds for backup
+const CACHE_TTL_SECONDS = 15; // 15 seconds TTL for fresh cache (reduced from 30)
+const STALE_TTL_SECONDS = 15; // 15 seconds for stale data (reduced from 30-60)
 const CTA_API_TIMEOUT_MS = 5000; // 5 seconds timeout for CTA API
 const MAX_RETRIES = 2; // Maximum number of retries for CTA API
-const THROTTLE_MS = 10000; // 10 seconds minimum between full refreshes
+const THROTTLE_MS = 5000; // 5 seconds minimum between full refreshes (reduced from 10s)
 const MAX_PAST_MINUTES = 2; // 2 minutes in the past to still show an arrival
 const TIME_OFFSET_MS = 5000; // Adjustable time offset to correct for server/CTA time differences
 
@@ -193,14 +193,12 @@ class RedisCacheHandler {
    */
   static async getCachedData(key: string): Promise<[any | null, number | null, Error | null]> {
     try {
-      // Try to get the data with timestamp
-      const cachedRaw = await redis.get(`${key}:data`);
-      const timestampStr = await redis.get(`${key}:timestamp`);
+      const result = await redis.hgetall(key);
       
-      if (!cachedRaw) return [null, null, null]; // Cache miss, not an error
+      if (!result || !result.data) return [null, null, null];
       
-      const timestamp = timestampStr ? parseInt(timestampStr) : null;
-      return [JSON.parse(cachedRaw), timestamp, null];
+      const timestamp = result.timestamp ? parseInt(result.timestamp) : null;
+      return [JSON.parse(result.data), timestamp, null];
     } catch (err) {
       console.warn(`Redis get error for key ${key}:`, err);
       return [null, null, err as Error];
@@ -233,12 +231,17 @@ class RedisCacheHandler {
   static async cacheData(key: string, data: any): Promise<void> {
     try {
       const timestamp = Date.now();
-      const pipeline = redis.pipeline();
       
-      pipeline.set(`${key}:data`, JSON.stringify(data), "EX", STALE_TTL_SECONDS);
-      pipeline.set(`${key}:timestamp`, timestamp.toString(), "EX", STALE_TTL_SECONDS);
+      // Store both data and timestamp in a single hash key
+      await redis.hset(
+        key,
+        'data', JSON.stringify(data),
+        'timestamp', timestamp.toString()
+      );
       
-      await pipeline.exec();
+      // Set expiration on the hash
+      await redis.expire(key, CACHE_TTL_SECONDS);
+      
       console.log(`Successfully cached data for key ${key}`);
     } catch (err) {
       // Log but don't fail the request

@@ -70,7 +70,7 @@ export default function SettingsPage() {
       <FeedbackDialog />
       
       {/* Credits Section */}
-      <div className="pt-4 mt-12 mb-4 text-center text-sm text-muted-foreground">
+      <div className="pt-4 mt-12 mb-24 pb-16 text-center text-sm text-muted-foreground">
         <p className="px-4">
           brought to you by{" "}
           <a

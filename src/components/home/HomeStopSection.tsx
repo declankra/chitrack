@@ -1,5 +1,5 @@
 // src/components/home/HomeStopSection.tsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { House, MapPin, RefreshCw, AlertCircle } from 'lucide-react';
@@ -10,80 +10,15 @@ import { useStopArrivals } from '@/lib/hooks/useStopArrivals';
 import { useRefreshAnimation } from '@/lib/hooks/useRefreshAnimation';
 import { formatRelativeTime, parseCtaDate, formatTimeDisplay, filterStaleArrivals } from '@/lib/utilities/timeUtils';
 import { findStopById } from '@/lib/utilities/findStop';
+import { useTime } from '@/lib/providers/TimeProvider';
 import type { Station, Arrival } from '@/lib/types/cta';
+import ArrivalTimeDisplay from '@/components/shared/ArrivalTimeDisplay';
 
 interface HomeStopSectionProps {
   homeStopId: string;
   stations: Station[];
   className?: string;
 }
-
-/**
- * Renders arrival time with status indicators for a train
- */
-const ArrivalTimeDisplay: React.FC<{
-  arrival: Arrival;
-  currentTime: Date;
-}> = ({ arrival, currentTime }) => {
-  const isApproaching = arrival.isApp === '1';
-  const isDelayed = arrival.isDly === '1';
-  const arrTime = parseCtaDate(arrival.arrT);
-  
-  if (!arrTime) return <div>N/A</div>;
-  
-  // If the train is approaching
-  if (isApproaching) {
-    return (
-      <div className="flex flex-col items-end">
-        <span className="text-lg font-bold text-destructive">Due</span>
-        <span className="text-xs text-muted-foreground">
-          {formatTimeDisplay(arrTime)}
-        </span>
-      </div>
-    );
-  }
-  
-  // If the train is delayed
-  if (isDelayed) {
-    return (
-      <div className="flex flex-col items-end">
-        <span className="text-amber-500 flex items-center gap-1 font-medium">
-          <AlertCircle className="w-3 h-3" /> Delayed
-        </span>
-        <span className="text-xs text-muted-foreground">
-          {formatTimeDisplay(arrTime)}
-        </span>
-      </div>
-    );
-  }
-  
-  // Calculate minutes until arrival
-  const diffMs = arrTime.getTime() - currentTime.getTime();
-  const diffMin = Math.round(diffMs / 60000);
-  
-  if (diffMin <= 0) {
-    return (
-      <div className="flex flex-col items-end">
-        <span className="text-lg font-bold text-destructive">Due</span>
-        <span className="text-xs text-muted-foreground">
-          {formatTimeDisplay(arrTime)}
-        </span>
-      </div>
-    );
-  }
-  
-  return (
-    <div className="flex flex-col items-end">
-      <span className="flex items-baseline gap-1">
-        <span className="text-lg font-bold">{diffMin}</span>
-        <span className="text-sm font-normal text-muted-foreground">min</span>
-      </span>
-      <span className="text-xs text-muted-foreground">
-        {formatTimeDisplay(arrTime)}
-      </span>
-    </div>
-  );
-};
 
 /**
  * HomeStopSection component - displays the user's home stop with arrivals
@@ -93,7 +28,8 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
   stations,
   className
 }) => {
-  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  // Use the centralized time provider instead of a local timer
+  const { currentTime } = useTime();
   
   // Get home stop details
   const homeStopDetails = findStopById(homeStopId, stations);
@@ -103,21 +39,13 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
     data: homeStopArrivals,
     isLoading: homeStopLoading,
     error: homeStopError,
-    refetch: refetchHomeStop,
+    refresh: refreshHomeStop,
+    isRefetching: isRefetchingHomeStop,
     lastUpdated: homeStopLastUpdated
   } = useStopArrivals(homeStopId, { enabled: !!homeStopId });
   
   // Animation state for refresh button
   const { isAnimating, triggerAnimation } = useRefreshAnimation();
-  
-  // Update current time every 15 seconds instead of 60 seconds
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 15000); // 15 seconds
-    
-    return () => clearInterval(intervalId);
-  }, []);
   
   // Filter stale arrivals
   const filteredArrivals = useMemo(() => {
@@ -128,98 +56,115 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
   // Handle refresh with animation
   const handleRefresh = () => {
     triggerAnimation();
-    refetchHomeStop();
+    refreshHomeStop();
   };
+
+  // If no home stop is set
+  if (!homeStopId || !homeStopDetails) {
+    return (
+      <Card className={cn("", className)}>
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <House className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold">Home Stop</h2>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">
+            <p className="text-muted-foreground mb-3">Set your home stop to see arrivals here</p>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/settings">Set Home Stop</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   
   return (
-    <Card className={className}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+    <Card className={cn("", className)}>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <House className="h-5 w-5 text-muted-foreground" />
-            <h2 className="text-lg font-medium">Home Stop</h2>
+            <House className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Home Stop</h2>
           </div>
+          
           <div className="flex items-center gap-2">
             {homeStopLastUpdated && (
               <span className="text-xs text-muted-foreground">
                 {formatRelativeTime(homeStopLastUpdated, currentTime)}
               </span>
             )}
-            {homeStopDetails && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={homeStopLoading}
-                aria-label="Refresh home stop arrivals"
-              >
-                <RefreshCw className={cn("h-4 w-4", { "animate-spin": homeStopLoading || isAnimating })} />
-              </Button>
-            )}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8" 
+              onClick={handleRefresh}
+              disabled={isRefetchingHomeStop}
+            >
+              <RefreshCw 
+                className={cn(
+                  "h-4 w-4", 
+                  (isAnimating || isRefetchingHomeStop) && "animate-spin"
+                )} 
+              />
+              <span className="sr-only">Refresh</span>
+            </Button>
           </div>
         </div>
       </CardHeader>
+      
       <CardContent>
-        {homeStopDetails ? (
+        {/* Home stop information */}
+        <div className="flex items-center gap-2 mb-2">
+          <MapPin className="h-4 w-4 text-muted-foreground" />
           <div>
-            {/* Home stop header */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <h3 className="font-semibold">{homeStopDetails.station.stationName}</h3>
-                  <p className="text-xs text-muted-foreground">{homeStopDetails.stop.directionName}</p>
-                </div>
-              </div>
+            <h3 className="font-semibold">{homeStopDetails.station.stationName}</h3>
+            <p className="text-xs text-muted-foreground">{homeStopDetails.stop.stopName}</p>
+          </div>
+        </div>
+        
+        {/* Arrivals content */}
+        {homeStopLoading && !homeStopArrivals ? (
+          <div className="flex justify-center py-4">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+              <span className="text-muted-foreground">Loading arrivals...</span>
             </div>
-            
-            {/* Home stop arrivals */}
-            {homeStopLoading && !homeStopArrivals ? (
-              <div className="flex justify-center py-4">
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                  <span className="text-sm text-muted-foreground">Loading arrivals...</span>
-                </div>
-              </div>
-            ) : homeStopError ? (
-              <div className="flex items-center justify-center py-4 px-3 bg-destructive/10 text-destructive rounded-md">
-                <AlertCircle className="h-4 w-4 mr-2" />
-                <p className="text-sm">Failed to load arrivals. Please try again.</p>
-              </div>
-            ) : !filteredArrivals.length ? (
-              <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground">No upcoming arrivals</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredArrivals.slice(0, 3).map((arrival, idx) => (
-                  <div key={idx} className="flex items-center justify-between border-b pb-2 last:border-b-0 last:pb-0">
-                    <div className="flex items-center gap-2">
-                      <RouteIndicator route={arrival.rt} />
-                      <div>
-                        <p className="font-medium">{arrival.destNm}</p>
-                      </div>
-                    </div>
-                    <ArrivalTimeDisplay
-                      arrival={arrival}
-                      currentTime={currentTime}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+          </div>
+        ) : homeStopError ? (
+          <div className="flex items-center justify-center py-3 px-4 bg-destructive/10 text-destructive rounded">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            <div>
+              <p className="text-sm font-medium">Failed to load arrivals</p>
+              <p className="text-xs mt-1">Please try refreshing</p>
+            </div>
+          </div>
+        ) : !filteredArrivals.length ? (
+          <div className="text-center py-4">
+            <p className="text-muted-foreground">No upcoming arrivals</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {homeStopArrivals?.arrivals && homeStopArrivals.arrivals.length > 0 
+                ? "Next trains are not arriving soon" 
+                : "No trains currently scheduled"}
+            </p>
           </div>
         ) : (
-          <div className="text-center py-6">
-            <p className="text-sm text-muted-foreground">
-              No home stop set. Visit settings to set your most frequent stop.
-            </p>
-            <Link
-              href="/settings"
-              className="inline-block mt-2 text-sm text-primary hover:underline"
-            >
-              Set Home Stop
-            </Link>
+          <div className="space-y-3">
+            {filteredArrivals.map((arrival, idx) => (
+              <div key={idx} className="flex items-center justify-between border-b pb-3 last:border-b-0 last:pb-0">
+                <div className="flex items-center gap-2">
+                  <RouteIndicator route={arrival.rt} />
+                  <div>
+                    <p className="font-medium">{arrival.destNm}</p>
+                  </div>
+                </div>
+                <ArrivalTimeDisplay arrival={arrival} currentTime={currentTime} />
+              </div>
+            ))}
           </div>
         )}
       </CardContent>

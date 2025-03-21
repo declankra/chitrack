@@ -20,36 +20,35 @@ export const formatRelativeTime = (date: Date | null, currentTime: Date): string
 };
 
 /**
- * Parse CTA arrival time to a Date object
- * @param ctaTime CTA arrival time in "YYYYMMDD HH:mm:ss" or ISO 8601 format
+ * Parses a CTA date string into a JavaScript Date object
+ * Handles both CTA format "YYYYMMDD HH:mm:ss" and ISO 8601 format
+ * @param dateString CTA date string
+ * @returns Date object or null if parsing fails
  */
-export const parseCtaDate = (ctaTime: string): Date | null => {
+export const parseCtaDate = (dateString: string): Date | null => {
   try {
-    // Handle ISO-8601 format (e.g. "2025-02-18T12:43:48")
-    if (ctaTime.includes('T')) {
-      const d = new Date(ctaTime);
-      return Number.isNaN(d.getTime()) ? null : d;
+    // Check if it's ISO format (contains 'T')
+    if (dateString.includes('T')) {
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
     }
     
-    // Handle CTA custom format ("YYYYMMDD HH:mm:ss")
-    if (!ctaTime || !ctaTime.includes(" ")) {
-      return null;
-    }
-    
-    const [datePart, timePart] = ctaTime.split(" ");
-    if (!datePart || !timePart) {
-      return null;
-    }
+    // Handle CTA format "YYYYMMDD HH:mm:ss"
+    const [datePart, timePart] = dateString.split(" ");
+    if (!datePart || !timePart) return null;
     
     const year = +datePart.slice(0, 4);
-    const month = +datePart.slice(4, 6) - 1;
+    const month = +datePart.slice(4, 6) - 1; // zero-based
     const day = +datePart.slice(6, 8);
+    
     const [hour, minute, second] = timePart.split(":").map(Number);
-
-    const d = new Date(year, month, day, hour, minute, second);
-    return Number.isNaN(d.getTime()) ? null : d;
-  } catch (err) {
-    console.error("Error parsing CTA date:", err);
+    
+    const date = new Date(year, month, day, hour, minute, second);
+    return isNaN(date.getTime()) ? null : date;
+  } catch (error) {
+    console.warn('Error parsing CTA date:', dateString, error);
     return null;
   }
 };
@@ -93,14 +92,15 @@ export const getGreeting = (): string => {
 export const filterStaleArrivals = (arrivals: Arrival[], maxPastMinutes: number = 2, currentTime: Date = new Date()): Arrival[] => {
   if (!arrivals || arrivals.length === 0) return [];
   
+  // Simply filter and return - no fallback needed
   return arrivals.filter(arrival => {
     const arrTime = parseCtaDate(arrival.arrT);
-    if (!arrTime) return false; // If we can't parse the time, filter it out
+    if (!arrTime) return false; // Invalid time
     
     const diffMs = arrTime.getTime() - currentTime.getTime();
     const diffMin = diffMs / 60000;
     
-    // Keep arrivals that are in the future OR within maxPastMinutes of the past
+    // Only show arrivals in the future or very recently past
     return diffMin > -maxPastMinutes;
   });
 };

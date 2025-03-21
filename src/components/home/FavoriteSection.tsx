@@ -9,6 +9,7 @@ import { formatRelativeTime } from '@/lib/utilities/timeUtils';
 import { findStopsByIds } from '@/lib/utilities/findStop';
 import { useMultipleStopArrivals } from '@/lib/hooks/useStopArrivals';
 import { useRefreshAnimation } from '@/lib/hooks/useRefreshAnimation';
+import { useTime } from '@/lib/providers/TimeProvider';
 import type { Station } from '@/lib/types/cta';
 
 interface FavoriteSectionProps {
@@ -25,15 +26,17 @@ export const FavoriteSection: React.FC<FavoriteSectionProps> = ({
   stations,
   className
 }) => {
-  const [currentTime, setCurrentTime] = React.useState<Date>(new Date());
+  // Use the centralized time provider instead of a local timer
+  const { currentTime } = useTime();
   
   // Get favorite stop details
   const favoriteStops = findStopsByIds(favoriteStopIds, stations);
   
   // Fetch arrivals for favorite stops
   const {
-    refetch: refetchFavoriteStops,
+    refresh: refreshFavoriteStops,
     isLoading: favoriteStopsLoading,
+    isRefetching: isRefetchingFavorites,
     lastUpdated: favoriteStopsLastUpdated
   } = useMultipleStopArrivals(
     favoriteStopIds,
@@ -43,73 +46,87 @@ export const FavoriteSection: React.FC<FavoriteSectionProps> = ({
   // Animation state for refresh button
   const { isAnimating, triggerAnimation } = useRefreshAnimation();
   
-  // Update current time every minute
-  React.useEffect(() => {
-    const intervalId = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
-    
-    return () => clearInterval(intervalId);
-  }, []);
-  
   // Handle manual refresh
   const handleRefresh = () => {
     triggerAnimation();
-    refetchFavoriteStops();
+    refreshFavoriteStops();
   };
   
-  return (
-    <Card className={className}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Star className="h-5 w-5 text-muted-foreground" />
-            <h2 className="text-lg font-medium">Favorite Stops</h2>
+  // If no favorites are set
+  if (!favoriteStopIds.length || !favoriteStops.length) {
+    return (
+      <Card className={cn("", className)}>
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Star className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold">Favorites</h2>
+            </div>
           </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">
+            <p className="text-muted-foreground mb-3">Save your favorite stops for quick access</p>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/settings">Add Favorites</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  return (
+    <Card className={cn("", className)}>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Star className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Favorites</h2>
+          </div>
+          
           <div className="flex items-center gap-2">
             {favoriteStopsLastUpdated && (
               <span className="text-xs text-muted-foreground">
                 {formatRelativeTime(favoriteStopsLastUpdated, currentTime)}
               </span>
             )}
-            {favoriteStops.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={favoriteStopsLoading}
-                aria-label="Refresh all favorite stops"
-              >
-                <RefreshCw className={cn("h-4 w-4", { "animate-spin": favoriteStopsLoading || isAnimating })} />
-              </Button>
-            )}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8" 
+              onClick={handleRefresh}
+              disabled={isRefetchingFavorites}
+            >
+              <RefreshCw 
+                className={cn(
+                  "h-4 w-4", 
+                  (isAnimating || isRefetchingFavorites) && "animate-spin"
+                )} 
+              />
+              <span className="sr-only">Refresh</span>
+            </Button>
           </div>
         </div>
       </CardHeader>
+      
       <CardContent>
-        {favoriteStops && favoriteStops.length > 0 ? (
-          <div className="space-y-4">
-            {favoriteStops.map(({ station, stop }) => (
-              <FavoriteStopCard
-                key={stop.stopId}
-                station={station}
-                stop={stop}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-6">
-            <p className="text-sm text-muted-foreground">
-              No favorite stops set. Add up to three favorite stops for quick access.
-            </p>
-            <Link
-              href="/settings"
-              className="inline-block mt-2 text-sm text-primary hover:underline"
-            >
-              Add Favorite Stops
-            </Link>
-          </div>
-        )}
+        <div className="grid grid-cols-1 gap-3">
+          {favoriteStops.map((stop) => (
+            <FavoriteStopCard 
+              key={stop.stop.stopId} 
+              station={stop.station} 
+              stop={stop.stop} 
+            />
+          ))}
+        </div>
+        
+        {/* Link to manage favorites - Added pb-16 for dock clearance */}
+        <div className="mt-4 pb-16 flex justify-center">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/favorites">Manage Favorites</Link>
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
