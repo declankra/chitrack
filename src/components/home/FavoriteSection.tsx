@@ -34,8 +34,10 @@ export const FavoriteSection: React.FC<FavoriteSectionProps> = ({
   
   // Fetch arrivals for favorite stops
   const {
+    data: stopsArrivalsData,
     refresh: refreshFavoriteStops,
     isLoading: favoriteStopsLoading,
+    isError: favoriteStopsError,
     isRefetching: isRefetchingFavorites,
     lastUpdated: favoriteStopsLastUpdated
   } = useMultipleStopArrivals(
@@ -116,7 +118,10 @@ export const FavoriteSection: React.FC<FavoriteSectionProps> = ({
             <FavoriteStopCard 
               key={stop.stop.stopId} 
               station={stop.station} 
-              stop={stop.stop} 
+              stop={stop.stop}
+              arrivals={stopsArrivalsData?.[stop.stop.stopId]?.arrivals}
+              isLoading={favoriteStopsLoading}
+              isError={favoriteStopsError}
             />
           ))}
         </div>
