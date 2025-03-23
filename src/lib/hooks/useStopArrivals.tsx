@@ -177,7 +177,7 @@ export const useMultipleStopArrivals = (
   }, []);
   
   const query = useQuery<Record<string, StopArrivalsResponse>, Error>({
-    queryKey: ['multipleStopArrivals', validStopIds],
+    queryKey: ['multipleStopArrivals', validStopIds, currentTime.getTime()],
     queryFn: async () => {
       // Abort any previous request
       if (abortControllerRef.current) {

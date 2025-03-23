@@ -128,11 +128,10 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
         </div>
         
         {/* Arrivals content */}
-        {homeStopLoading && !homeStopArrivals ? (
+        {homeStopLoading ? (
           <div className="flex justify-center py-4">
             <div className="flex items-center gap-2">
-              <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
-              <span className="text-muted-foreground">Loading arrivals...</span>
+              <span className="text-muted-foreground">Loading...</span>
             </div>
           </div>
         ) : homeStopError ? (
