@@ -73,6 +73,21 @@ const ArrivalTimeDisplay: React.FC<{
       </div>
     );
   }
+
+  // Special case for 2 minutes - display with two running person emojis
+  if (diffMin === 2) {
+    return (
+      <div className="flex flex-col items-end">
+        <span className="flex items-baseline gap-1">
+          <span className="text-lg font-bold">🏃‍♂️🏃‍♂️</span>
+          <span className="text-sm font-normal text-muted-foreground">min</span>
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {formatTimeDisplay(arrTime)}
+        </span>
+      </div>
+    );
+  }
   
   return (
     <div className="flex flex-col items-end">
