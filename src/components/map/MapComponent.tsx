@@ -8,6 +8,7 @@ import 'mapbox-gl/dist/mapbox-gl.css'; // Make sure this import is at the top
 import { MapPin } from 'lucide-react';
 import { RouteColor, ROUTE_COLORS } from '@/lib/types/cta';
 import type { Station } from '@/lib/types/cta';
+import type { FeatureCollection, Feature, GeoJsonProperties, LineString } from 'geojson'; // Import GeoJSON types
 
 // Chicago coordinates and bounds
 const CHICAGO_CENTER = [-87.6298, 41.8781];
@@ -16,174 +17,32 @@ const CHICAGO_BOUNDS = [
   [-87.2, 42.1]  // Northeast coordinates
 ];
 
-// Simplified GeoJSON for major CTA lines
-const SIMPLIFIED_CTA_LINES = {
-  'Red': {
-    type: 'Feature',
-    properties: { color: 'Red' },
-    geometry: {
-      type: 'LineString',
-      coordinates: [
-        [-87.6298, 42.0188], // Howard
-        [-87.6309, 41.9784], // Loyola
-        [-87.6594, 41.9474], // Wilson
-        [-87.6533, 41.9168], // Belmont
-        [-87.6282, 41.8939], // Fullerton
-        [-87.6282, 41.8781], // Chicago
-        [-87.6277, 41.8564], // Jackson
-        [-87.6312, 41.8299], // Sox-35th
-        [-87.6307, 41.7994], // Garfield
-        [-87.6243, 41.7226], // 95th/Dan Ryan
-      ]
-    }
-  },
-  'Blue': {
-    type: 'Feature',
-    properties: { color: 'Blue' },
-    geometry: {
-      type: 'LineString',
-      coordinates: [
-        [-87.9042, 41.9776], // O'Hare
-        [-87.8089, 41.9823], // Harlem
-        [-87.7432, 41.9609], // Montrose
-        [-87.7085, 41.9297], // Logan Square
-        [-87.6688, 41.9097], // Western
-        [-87.6554, 41.8909], // Chicago
-        [-87.6293, 41.8807], // Clark/Lake
-        [-87.6294, 41.8781], // Washington
-        [-87.6407, 41.8755], // Clinton
-        [-87.6774, 41.8757], // Illinois Medical District
-        [-87.7176, 41.8741], // Pulaski
-        [-87.8173, 41.8743], // Forest Park
-      ]
-    }
-  },
-  'Brown': {
-    type: 'Feature',
-    properties: { color: 'Brn' },
-    geometry: {
-      type: 'LineString',
-      coordinates: [
-        [-87.7131, 41.9679], // Kimball
-        [-87.7088, 41.9661], // Kedzie
-        [-87.6885, 41.9662], // Western
-        [-87.6637, 41.9438], // Southport
-        [-87.6536, 41.9474], // Belmont
-        [-87.6533, 41.9168], // Belmont
-        [-87.6339, 41.8949], // Merchandise Mart
-        [-87.6309, 41.8855], // Clark/Lake
-        [-87.6290, 41.8768], // Washington/Wells
-        [-87.6311, 41.8762], // LaSalle/Van Buren
-        [-87.6281, 41.8765], // Library
-      ]
-    }
-  },
-  'Green': {
-    type: 'Feature',
-    properties: { color: 'G' },
-    geometry: {
-      type: 'LineString',
-      coordinates: [
-        [-87.8032, 41.8867], // Harlem/Lake
-        [-87.7767, 41.8874], // Oak Park
-        [-87.7447, 41.8865], // Ridgeland
-        [-87.7254, 41.8854], // Pulaski
-        [-87.6962, 41.8842], // California
-        [-87.6670, 41.8854], // Ashland
-        [-87.6419, 41.8857], // Clinton
-        [-87.6309, 41.8855], // Clark/Lake
-        [-87.6278, 41.8768], // State/Lake
-        [-87.6278, 41.8755], // Adams/Wabash
-        [-87.6277, 41.8564], // Roosevelt
-        [-87.6185, 41.8316], // 35th-Bronzeville-IIT
-        [-87.6184, 41.8099], // 47th
-        [-87.6183, 41.7952], // Garfield
-        [-87.6183, 41.7802], // King Drive
-        [-87.6059, 41.7803], // Cottage Grove
-        [-87.6638, 41.7790], // Ashland/63rd
-      ]
-    }
-  },
-  'Orange': {
-    type: 'Feature',
-    properties: { color: 'Org' },
-    geometry: {
-      type: 'LineString',
-      coordinates: [
-        [-87.6278, 41.8768], // State/Lake
-        [-87.6277, 41.8564], // Roosevelt
-        [-87.6337, 41.8356], // 35th/Archer
-        [-87.6653, 41.8393], // Ashland
-        [-87.6840, 41.8046], // Western
-        [-87.7045, 41.8042], // Kedzie
-        [-87.7245, 41.7998], // Pulaski
-        [-87.7379, 41.7866], // Midway
-      ]
-    }
-  },
-  'Pink': {
-    type: 'Feature',
-    properties: { color: 'Pink' },
-    geometry: {
-      type: 'LineString',
-      coordinates: [
-        [-87.7567, 41.8518], // 54th/Cermak
-        [-87.7453, 41.8518], // Cicero
-        [-87.7333, 41.8538], // Kostner
-        [-87.7258, 41.8539], // Pulaski
-        [-87.7054, 41.8540], // Kedzie
-        [-87.6851, 41.8542], // California
-        [-87.6760, 41.8545], // Western
-        [-87.6670, 41.8545], // Damen
-        [-87.6670, 41.8854], // Ashland
-        [-87.6419, 41.8857], // Clinton
-        [-87.6309, 41.8855], // Clark/Lake
-      ]
-    }
-  },
-  'Purple': {
-    type: 'Feature',
-    properties: { color: 'P' },
-    geometry: {
-      type: 'LineString',
-      coordinates: [
-        [-87.6907, 42.0735], // Linden
-        [-87.6835, 42.0582], // Noyes
-        [-87.6853, 42.0447], // Main
-        [-87.6812, 42.0190], // Howard
-        [-87.6594, 41.9474], // Wilson
-        [-87.6533, 41.9168], // Belmont
-        [-87.6339, 41.8949], // Merchandise Mart
-        [-87.6309, 41.8855], // Clark/Lake
-      ]
-    }
-  },
-  'Yellow': {
-    type: 'Feature',
-    properties: { color: 'Y' },
-    geometry: {
-      type: 'LineString',
-      coordinates: [
-        [-87.6835, 42.0582], // Noyes
-        [-87.7519, 42.0409], // Dempster-Skokie
-        [-87.7472, 42.0262], // Oakton-Skokie
-      ]
-    }
-  }
-};
-
 // Helper function to convert route code to hex color
-const getRouteColor = (routeCode: RouteColor): string => {
-  switch (routeCode) {
-    case 'Red': return '#dc2626'; // red-600
-    case 'Blue': return '#2563eb'; // blue-600
-    case 'Brn': return '#92400e'; // amber-800
-    case 'G': return '#16a34a'; // green-600
-    case 'Org': return '#f97316'; // orange-500
-    case 'P': return '#9333ea'; // purple-600
-    case 'Pink': return '#ec4899'; // pink-500
-    case 'Y': return '#eab308'; // yellow-500
-    default: return '#000000';
+const getRouteColor = (routeCode: string | undefined): string => { // Allow undefined input
+  // Normalize potential inputs from GeoJSON properties
+  const normalizedCode = routeCode?.toUpperCase();
+  switch (normalizedCode) {
+    case 'RED': return '#dc2626'; // red-600
+    case 'BLUE': return '#2563eb'; // blue-600
+    case 'BRN': // Brown line
+    case 'BROWN':
+      return '#92400e'; // amber-800
+    case 'G': // Green line
+    case 'GREEN':
+      return '#16a34a'; // green-600
+    case 'ORG': // Orange line
+    case 'ORANGE':
+      return '#f97316'; // orange-500
+    case 'P': // Purple line
+    case 'PURPLE':
+      return '#9333ea'; // purple-600
+    case 'PINK': return '#ec4899'; // pink-500
+    case 'Y': // Yellow line
+    case 'YELLOW':
+      return '#eab308'; // yellow-500
+    default:
+      console.warn(`Unknown route code: ${routeCode}, using black.`);
+      return '#000000'; // Default black
   }
 };
 
@@ -199,67 +58,70 @@ const MapComponent: React.FC<MapComponentProps> = ({ stations, onStationSelect }
   const [mapboxToken, setMapboxToken] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const [isMapReady, setIsMapReady] = useState<boolean>(false); // Track map load and data fetch
+
   // Fetch Mapbox token from secure API endpoint
   useEffect(() => {
     const fetchMapboxToken = async () => {
       try {
-        setIsLoading(true);
+        setIsLoading(true); // Ensure loading starts/continues
+        setError(null); // Clear previous errors
         console.log('Fetching Mapbox token...');
         const response = await fetch('/api/mapbox');
-        
+
         if (!response.ok) {
           throw new Error(`Failed to fetch Mapbox token: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         console.log('Mapbox token received:', data.token ? 'Token exists' : 'Token is empty');
-        
+
         if (!data.token) {
           throw new Error('Received empty Mapbox token from API');
         }
-        
+
         setMapboxToken(data.token);
-        
-        // Set the token for mapboxgl - IMPORTANT
         mapboxgl.accessToken = data.token;
-        setIsLoading(false);
+        // DO NOT set isLoading false here; wait for map load event.
       } catch (err) {
         console.error('Error fetching Mapbox token:', err);
-        setError(`Failed to load map: ${err instanceof Error ? err.message : 'Unknown error'}`);
-        setIsLoading(false);
+        setError(`Failed to load map credentials: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        setIsLoading(false); // Stop loading ONLY on token fetch error
       }
     };
-    
+
     fetchMapboxToken();
-  }, []);
-  
-  // Initialize map when component mounts and token is available
+  }, []); // Runs only on mount
+
+  // Initialize map when token is available and container is ready
   useEffect(() => {
-    if (!mapContainer.current || !mapboxToken || isLoading) {
-      console.log('Map initialization skipped:', {
-        containerExists: !!mapContainer.current,
+    // Conditions: Token exists, container ref exists, map not yet initialized
+    if (!mapboxToken || !mapContainer.current || map.current) {
+      console.log('Map initialization prerequisites not met:', {
         tokenExists: !!mapboxToken,
-        isLoading
+        containerExists: !!mapContainer.current,
+        mapInitialized: !!map.current
       });
-      return;
+      return; // Prerequisites not met, wait for them (e.g., next render after ref attached)
     }
-    
+
     try {
       console.log('Initializing Mapbox map...');
-      
-      // Verify container dimensions
-      const container = mapContainer.current;
+      const container = mapContainer.current; // Use the ref now that we know it exists
+
+      // Verify container dimensions (optional but good practice)
       const containerStyle = window.getComputedStyle(container);
-      console.log('Map container dimensions:', {
+      console.log('Map container dimensions on init:', {
         width: containerStyle.width,
         height: containerStyle.height,
-        position: containerStyle.position
       });
-      
+       if (containerStyle.width === '0px' || containerStyle.height === '0px') {
+         console.warn("Map container has zero dimensions during init. Map might not render correctly.");
+       }
+
       // Create map instance
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current,
+      const mapInstance = new mapboxgl.Map({
+        container: container, // Use the verified container
         style: 'mapbox://styles/mapbox/light-v10', // Light monochromatic style
         center: CHICAGO_CENTER as LngLatLike,
         zoom: 11,
@@ -267,66 +129,117 @@ const MapComponent: React.FC<MapComponentProps> = ({ stations, onStationSelect }
         attributionControl: false,
         logoPosition: 'top-right', // Position the logo in top-right corner
       });
-      
-      // Debug map creation
+
+      map.current = mapInstance; // Store the map instance
+
       console.log('Map instance created:', !!map.current);
-      
+
       // Add navigation controls
-      map.current.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
-      
+      mapInstance.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+
       // Set up map events
-      const mapInstance = map.current;
-      
-      // Debug map load event
-      mapInstance.on('load', () => {
-        console.log('Map loaded successfully');
-        // Add transit lines to the map
+      mapInstance.on('load', async () => {
+        console.log('Map loaded event triggered.');
         try {
-          Object.entries(SIMPLIFIED_CTA_LINES).forEach(([routeName, line]) => {
-            const routeCode = line.properties.color as RouteColor;
-            const color = getRouteColor(routeCode);
-            
-            mapInstance.addSource(`line-${routeName}`, {
-              type: 'geojson',
-              data: line as unknown as GeoJSON.Feature
-            });
-            
+          console.log('Fetching detailed CTA lines GeoJSON...');
+          const response = await fetch('/cta_lines_detailed.geojson');
+          if (!response.ok) {
+            throw new Error(`Failed to fetch GeoJSON: ${response.status} ${response.statusText}`);
+          }
+          const ctaLinesData = await response.json() as FeatureCollection<LineString, GeoJsonProperties>;
+          console.log('Detailed CTA lines GeoJSON fetched successfully.');
+
+          // --- Add Detailed Transit Lines --- NEW APPROACH ---
+          const ALL_LINES_SOURCE_ID = 'detailed-cta-lines';
+
+          // Define canonical line names/identifiers used in the GeoJSON properties
+          // (Adjust these based on EXACT values needed for filtering, e.g., 'Red', 'Blue', 'G', 'Brn', etc.)
+          const CANONICAL_LINE_NAMES = ['Red', 'Blue', 'Green', 'Brown', 'Purple', 'Yellow', 'Pink', 'Orange'];
+
+          // Remove potentially pre-existing source and layers from previous approach or HMR
+          const existingSource = mapInstance.getSource(ALL_LINES_SOURCE_ID);
+          if (existingSource) {
+            // Remove layers using the source first
+            const currentStyle = mapInstance.getStyle(); // Get style once
+            if (currentStyle && currentStyle.layers) {
+              currentStyle.layers.forEach(layer => {
+                if (layer.source === ALL_LINES_SOURCE_ID) {
+                  mapInstance.removeLayer(layer.id);
+                }
+              });
+            }
+            mapInstance.removeSource(ALL_LINES_SOURCE_ID);
+            console.log(`Removed existing source: ${ALL_LINES_SOURCE_ID}`);
+          }
+
+          // 1. Add a SINGLE source for all line features
+          mapInstance.addSource(ALL_LINES_SOURCE_ID, {
+            type: 'geojson',
+            data: ctaLinesData // The full FeatureCollection
+          });
+          console.log(`Added single source: ${ALL_LINES_SOURCE_ID}`);
+
+          // 2. Add a separate LAYER for each canonical line color, filtered
+          CANONICAL_LINE_NAMES.forEach((lineName, index) => {
+            const layerId = `layer-line-${lineName}`;
+            const color = getRouteColor(lineName); // Get color based on canonical name
+
+            // Filter features where the 'LINES' property string CONTAINS the canonical name
+            // Note: This is case-sensitive. Adjust filter or data if needed.
+            const filter = ['in', lineName, ['string', ['get', 'LINES']]];
+
             mapInstance.addLayer({
-              id: `line-${routeName}`,
+              id: layerId,
               type: 'line',
-              source: `line-${routeName}`,
+              source: ALL_LINES_SOURCE_ID,
               layout: {
                 'line-join': 'round',
                 'line-cap': 'round'
               },
               paint: {
                 'line-color': color,
-                'line-width': 4
-              }
+                // Use a slightly thinner line width, maybe offset based on index for shared tracks
+                'line-width': 3.5,
+                // Example offset: shift lines slightly side-by-side on shared tracks
+                // Adjust multiplier as needed for visual separation
+                'line-offset': (index - CANONICAL_LINE_NAMES.length / 2 + 0.5) * 1.5
+              },
+              filter: filter // Apply the filter here
             });
+            console.log(`Added layer ${layerId} for ${lineName} with color ${color}`);
           });
-          
-          // Add station markers after transit lines are added
-          addStationMarkers();
-          console.log('Transit lines and markers added');
-        } catch (err) {
-          console.error('Error adding transit lines:', err);
+          // ---------------------------------------------------
+
+          // Add station markers AFTER transit lines are added
+          console.log('GeoJSON processed, setting map ready and stopping loading.');
+          setIsMapReady(true); // Mark map as visually ready
+          setIsLoading(false); // <--- Set loading false HERE
+
+        } catch (fetchErr) {
+          console.error('Error fetching or processing detailed CTA lines:', fetchErr);
+          setError(`Failed to load transit lines: ${fetchErr instanceof Error ? fetchErr.message : 'Unknown error'}`);
+          setIsLoading(false); // Stop loading on GeoJSON fetch error
         }
       });
-      
+
       // Listen for map errors
       mapInstance.on('error', (e) => {
         console.error('Mapbox error:', e);
-        setError(`Map error: ${e.error?.message || 'Unknown error'}`);
+        if (!error) { // Avoid overwriting more specific errors
+            setError(`Map error: ${e.error?.message || 'Unknown error'}`);
+        }
+        setIsLoading(false); // Stop loading on map error
       });
-      
+
       // Add global styles for map components
-      addMapStyles();
-    } catch (err) {
-      console.error('Error initializing map:', err);
-      setError(`Failed to initialize map: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      addMapStyles(); // Function defined elsewhere
+
+    } catch (initErr) {
+      console.error('Error initializing map:', initErr);
+      setError(`Failed to initialize map: ${initErr instanceof Error ? initErr.message : 'Unknown error'}`);
+      setIsLoading(false); // Stop loading on initialization error
     }
-    
+
     // Clean up on unmount
     return () => {
       if (map.current) {
@@ -334,17 +247,29 @@ const MapComponent: React.FC<MapComponentProps> = ({ stations, onStationSelect }
         map.current.remove();
         map.current = null;
       }
-      removeMapStyles();
+      removeMapStyles(); // Function defined elsewhere
+      setIsMapReady(false); // Reset map ready state
     };
-  }, [mapboxToken, isLoading]);
-  
-  // Update station markers when stations data changes
+  // Dependencies: Re-run if the token changes. The check for mapContainer happens inside.
+  }, [mapboxToken]);
+
+
+  // Update station markers when stations data changes OR when map becomes ready
   useEffect(() => {
-    if (map.current && map.current.loaded() && stations.length > 0) {
+    // Ensure map is initialized, ready, and stations are available
+    if (map.current && isMapReady && stations.length > 0) {
+      console.log("Map is ready and stations available, adding/updating markers.");
       addStationMarkers();
+    } else {
+       console.log("Conditions not met for adding station markers:", {
+           mapExists: !!map.current,
+           isMapReady: isMapReady,
+           stationsExist: stations.length > 0
+       });
     }
-  }, [stations]);
-  
+  // Depend on stations data AND the map ready state
+  }, [stations, isMapReady]);
+
   // Add global styles for map components
   const addMapStyles = () => {
     if (!document.getElementById('map-styles')) {
@@ -372,11 +297,14 @@ const MapComponent: React.FC<MapComponentProps> = ({ stations, onStationSelect }
           animation: pulse 2s infinite;
         }
         
-        /* Station marker hover effects */
-        .station-marker:hover {
+        /* Station marker hover effects - Target the inner element */
+        .station-marker:hover > div {
           transform: scale(1.5);
           box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1);
         }
+
+        /* Remove station marker click effect class */
+        /* .station-marker-clicked { ... } */
 
         /* Make sure the map canvas is visible */
         .mapboxgl-canvas {
@@ -402,46 +330,62 @@ const MapComponent: React.FC<MapComponentProps> = ({ stations, onStationSelect }
   
   // Add station markers to the map
   const addStationMarkers = () => {
-    if (!map.current || stations.length === 0) return;
-    
-    // Remove existing markers first (if any)
-    const markers = document.getElementsByClassName('station-marker');
-    while (markers[0]) {
-      markers[0].remove();
-    }
-    
+    if (!map.current || !isMapReady) { // Check isMapReady here too
+        console.log("Skipping marker add: Map not ready or stations empty");
+        return;
+    };
+
+    // Remove existing markers first (if any) - Improved efficiency
+    const existingMarkers = map.current.getContainer().querySelectorAll('.station-marker');
+    existingMarkers.forEach(marker => marker.remove());
+
+
     // Add markers for each station
     stations.forEach(station => {
-      if (!station.lat || !station.lon) return;
-      
-      // Create marker element
+      if (!station.lat || !station.lon) {
+          console.warn(`Station ${station.stationName} missing coordinates.`);
+          return;
+      };
+
+      // Create marker element (outer container)
       const markerEl = document.createElement('div');
       markerEl.className = 'station-marker';
-      markerEl.style.width = '12px';
-      markerEl.style.height = '12px';
-      markerEl.style.borderRadius = '50%';
-      markerEl.style.backgroundColor = '#000';
-      markerEl.style.border = '2px solid white';
-      markerEl.style.boxShadow = '0 0 0 1px rgba(0, 0, 0, 0.1)';
       markerEl.style.cursor = 'pointer';
-      markerEl.style.transition = 'transform 0.2s ease, box-shadow 0.2s ease';
-      
-      // Create and add marker
-      const marker = new mapboxgl.Marker(markerEl)
+      markerEl.title = station.stationName; // Add tooltip
+
+      // Create inner element for visual representation and transforms
+      const innerEl = document.createElement('div');
+      innerEl.style.width = '12px';
+      innerEl.style.height = '12px';
+      innerEl.style.borderRadius = '50%';
+      innerEl.style.backgroundColor = '#000';
+      innerEl.style.border = '2px solid white';
+      innerEl.style.boxShadow = '0 0 0 1px rgba(0, 0, 0, 0.1)';
+      innerEl.style.transition = 'transform 0.2s ease, box-shadow 0.2s ease';
+      innerEl.style.transformOrigin = 'center center'; // Ensure scaling is centered
+
+      // Append inner element to marker element
+      markerEl.appendChild(innerEl);
+
+      // Create and add marker using the outer element
+      const marker = new mapboxgl.Marker({ element: markerEl, anchor: 'center' })
         .setLngLat([station.lon, station.lat])
         .addTo(map.current!);
-      
-      // Add click handler
-      markerEl.addEventListener('click', () => {
-        // Visual feedback on click
-        markerEl.style.transform = 'scale(1.5)';
+
+      // Add click handler to the outer element
+      markerEl.addEventListener('click', (e) => {
+         e.stopPropagation(); // Prevent map click event when clicking marker
+        // Visual feedback on click - Apply transform to inner element
+        innerEl.style.transform = 'scale(1.5)';
         setTimeout(() => {
-          markerEl.style.transform = 'scale(1)';
+          // Reset transform on inner element
+          innerEl.style.transform = 'scale(1)';
         }, 300);
-        
+
         onStationSelect(station);
       });
     });
+     console.log(`Added/Updated ${stations.length} station markers.`);
   };
   
   // Handle the "Locate Me" button click
@@ -450,16 +394,18 @@ const MapComponent: React.FC<MapComponentProps> = ({ stations, onStationSelect }
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setUserLocation(position);
-          
-          if (map.current) {
+
+          if (map.current && isMapReady) { // Check if map is ready
             map.current.flyTo({
               center: [position.coords.longitude, position.coords.latitude],
               zoom: 15,
               essential: true
             });
-            
+
             // Add or update user location marker
             addUserLocationMarker(position);
+          } else {
+              console.log("Map not ready to fly to location.");
           }
         },
         (error) => {
@@ -473,69 +419,82 @@ const MapComponent: React.FC<MapComponentProps> = ({ stations, onStationSelect }
     }
   };
   
-  // Add user location marker to the map
+  // Add user location marker to the map (Using Marker for simpler pulsing)
+  const userMarkerRef = useRef<mapboxgl.Marker | null>(null); // Keep ref to marker
+
   const addUserLocationMarker = (position: GeolocationPosition) => {
-    if (!map.current) return;
-    
-    // Remove existing user marker if any
-    const userMarker = document.getElementById('user-location-marker');
-    if (userMarker) userMarker.remove();
-    
-    // Create user location marker
-    const userMarkerEl = document.createElement('div');
-    userMarkerEl.id = 'user-location-marker';
-    userMarkerEl.className = 'pulsing-dot';
-    userMarkerEl.style.width = '16px';
-    userMarkerEl.style.height = '16px';
-    userMarkerEl.style.borderRadius = '50%';
-    userMarkerEl.style.backgroundColor = 'rgba(0, 122, 255, 0.5)';
-    userMarkerEl.style.border = '3px solid rgba(0, 122, 255, 1)';
-    
-    // Add marker to map
-    new mapboxgl.Marker(userMarkerEl)
-      .setLngLat([position.coords.longitude, position.coords.latitude])
-      .addTo(map.current);
+      if (!map.current || !isMapReady) return;
+
+      const coords: LngLatLike = [position.coords.longitude, position.coords.latitude];
+
+      // If marker exists, just update its position
+      if (userMarkerRef.current) {
+          userMarkerRef.current.setLngLat(coords);
+          console.log("Updated user location marker position.");
+      } else {
+          // Create user location marker element with pulsing animation class
+          const userMarkerEl = document.createElement('div');
+          userMarkerEl.className = 'pulsing-dot'; // Apply CSS class for animation/styling
+
+          // Add marker to map and store reference
+          userMarkerRef.current = new mapboxgl.Marker(userMarkerEl)
+              .setLngLat(coords)
+              .addTo(map.current);
+          console.log("Added new user location marker.");
+      }
   };
   
   return (
     <div className="relative h-full w-full">
-      {isLoading ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
+      {/* Loading Overlay - Shown only when isLoading is true */}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-50">
           <div className="text-center">
             <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
             <p>Loading map...</p>
           </div>
         </div>
-      ) : error ? (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center p-4 bg-destructive/10 rounded-md">
-            <p className="text-destructive font-medium">{error}</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="mt-2 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm"
+      )}
+
+      {/* Error Overlay - Shown only on error AND not loading */}
+      {error && !isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center z-40">
+          <div className="text-center p-4 bg-destructive/10 border border-destructive/30 rounded-md shadow-lg">
+            <p className="text-destructive font-medium mb-2">Map Error</p>
+            <p className="text-sm text-destructive/80 mb-3">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-1.5 bg-destructive text-destructive-foreground rounded-md text-sm hover:bg-destructive/90"
             >
               Retry
             </button>
           </div>
         </div>
-      ) : (
-        <>
-          <div 
-            ref={mapContainer} 
-            className="absolute inset-0" 
-            style={{ width: '100%', height: '100%' }} // Explicit dimensions
-          />
-          
-          {/* Locate Me button */}
-          <button
-            onClick={handleLocateMe}
-            className="absolute top-4 right-4 z-10 bg-background/80 rounded-full p-2 shadow-md backdrop-blur-sm"
-            aria-label="Locate me"
-          >
-            <MapPin className="h-5 w-5" />
-          </button>
-        </>
       )}
+
+      {/* Map Container Div - Always rendered for ref attachment, visibility controlled by style */}
+       <div
+          ref={mapContainer}
+          className="absolute inset-0 bg-gray-200" // Basic background shown before map tiles load
+          style={{
+             width: '100%',
+             height: '100%',
+             // Hide map visually until ready to prevent flash of unstyled/incomplete map
+             visibility: isMapReady ? 'visible' : 'hidden'
+           }}
+       />
+
+       {/* UI elements overlaying the map - Shown when map is ready */}
+       {isMapReady && !error && (
+         <button
+           onClick={handleLocateMe}
+           className="absolute top-4 right-4 z-10 bg-background/80 rounded-full p-2 shadow-md backdrop-blur-sm hover:bg-background/90 transition-colors"
+           aria-label="Locate me"
+           title="Locate me" // Tooltip for accessibility
+         >
+           <MapPin className="h-5 w-5" />
+         </button>
+       )}
     </div>
   );
 };
