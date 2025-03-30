@@ -105,7 +105,7 @@ export const useStopArrivals = (
         const cacheAge = response.headers.get('X-Cache-Age');
         const isFresh = response.headers.get('X-Cache-Fresh') === 'true';
         
-        console.log(`Stop ${stopId} data: Cache ${cacheStatus}, Age: ${cacheAge}s, Fresh: ${isFresh}`);
+        // console.log(`Stop ${stopId} data: Cache ${cacheStatus}, Age: ${cacheAge}s, Fresh: ${isFresh}`);
         
         // Update last refresh time in TimeProvider
         updateLastRefreshTime();
@@ -220,7 +220,7 @@ export const useMultipleStopArrivals = (
             const cacheAge = response.headers.get('X-Cache-Age');
             const isFresh = response.headers.get('X-Cache-Fresh') === 'true';
             
-            console.log(`Stop ${stopId} data: Cache ${cacheStatus}, Age: ${cacheAge}s, Fresh: ${isFresh}`);
+            // console.log(`Stop ${stopId} data: Cache ${cacheStatus}, Age: ${cacheAge}s, Fresh: ${isFresh}`);
             
             // Update last refresh time in TimeProvider
             updateLastRefreshTime();

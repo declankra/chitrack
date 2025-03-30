@@ -269,7 +269,7 @@ async function fetchFreshData(stationIds: string[], cacheKey: string): Promise<S
   });
 
   const ctaUrl = `${baseUrl}?${urlParams.toString()}`;
-  console.log(`Requesting fresh data from CTA API for stations: ${stationIds.join(",")}`);
+  // console.log(`Requesting fresh data from CTA API for stations: ${stationIds.join(",")}`);
   
   try {
     // Fetch with retry and timeout
@@ -282,14 +282,14 @@ async function fetchFreshData(stationIds: string[], cacheKey: string): Promise<S
     }
 
     const rawArrivals: Arrival[] = data.ctatt.eta;
-    console.log(`CTA API returned ${rawArrivals.length} raw arrivals for stations ${stationIds.join(",")}`);
+    // console.log(`CTA API returned ${rawArrivals.length} raw arrivals for stations ${stationIds.join(",")}`);
     
     const result = processArrivals(rawArrivals);
     
     // Cache the results
     await RedisCacheHandler.cacheData(cacheKey, result);
     
-    console.log(`Successfully processed and cached ${rawArrivals.length} arrivals into ${result.length} stations`);
+    // console.log(`Successfully processed and cached ${rawArrivals.length} arrivals into ${result.length} stations`);
     return result;
   } catch (error) {
     console.error(`Failed to fetch data from CTA API for ${cacheKey}:`, error);
@@ -362,7 +362,7 @@ export async function GET(request: NextRequest) {
     // If we hit cache and it's not too stale, use it immediately
     if (cachedData && !RedisCacheHandler.isCacheTooStale(cacheTimestamp)) {
       const dataAge = cacheTimestamp ? (Date.now() - cacheTimestamp) / 1000 : 'unknown';
-      console.log(`Using cached data for ${cacheKey}, age: ${dataAge} seconds`);
+      // console.log(`Using cached data for ${cacheKey}, age: ${dataAge} seconds`);
       
       // If data is fresh, mark it as fresh
       if (RedisCacheHandler.isCacheFresh(cacheTimestamp)) {
@@ -373,7 +373,7 @@ export async function GET(request: NextRequest) {
       // extra fetching when the client is using manual refresh mode
       const allowBackgroundRefresh = request.headers.get('x-allow-background') === 'true';
       if (!isFreshData && allowBackgroundRefresh) {
-        console.log(`Cache hit but stale, initiating background refresh for ${cacheKey}`);
+        // console.log(`Cache hit but stale, initiating background refresh for ${cacheKey}`);
         // Use .catch to prevent background fetch from affecting main response
         fetchFreshData(stationIds, cacheKey).catch(err => 
           console.error(`Background refresh failed for ${cacheKey}:`, err)
@@ -391,11 +391,11 @@ export async function GET(request: NextRequest) {
     }
 
     // If we need fresh data and don't have usable cache, fetch it now
-    console.log(`Cache miss or too stale for ${cacheKey}, fetching fresh data`);
+    // console.log(`Cache miss or too stale for ${cacheKey}, fetching fresh data`);
     const result = await fetchFreshData(stationIds, cacheKey);
     
     const processingTime = Date.now() - startTime;
-    console.log(`Total processing time: ${processingTime}ms for ${cacheKey}`);
+    // console.log(`Total processing time: ${processingTime}ms for ${cacheKey}`);
     
     return NextResponse.json(result, {
       headers: {
