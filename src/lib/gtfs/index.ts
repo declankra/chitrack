@@ -133,6 +133,8 @@ function transformStops(gtfsStops: GtfsStop[]): Station[] {
       if (!station) {
         // If we don't find a parent station, data might be incomplete or
         // maybe it's a weird case for the CTA feed. Just skip for now.
+        // Add a log for skipped stops for debugging
+        console.warn(`GTFS Transform: Stop ${stop.stop_id} has parent_station ${stop.parent_station}, but parent station not found in map.`);
         return;
       }
 

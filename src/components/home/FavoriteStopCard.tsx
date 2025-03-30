@@ -37,15 +37,34 @@ export const FavoriteStopCard: React.FC<FavoriteStopCardProps> = ({
     return filterStaleArrivals(arrivals, 2, currentTime);
   }, [arrivals, currentTime]);
   
+  // --- Derive Display Info from Arrivals (or fallback) ---
+  const displayInfo = React.useMemo(() => {
+    if (filteredArrivals && filteredArrivals.length > 0) {
+      // Use the first arrival's data as representative
+      const firstArrival = filteredArrivals[0];
+      return {
+        stationName: firstArrival.staNm,
+        directionName: firstArrival.stpDe || 'Direction Info Unavailable' // Use stpDe
+      };
+    } else {
+      // Fallback to static props if no current arrivals
+      return {
+        stationName: station.stationName,
+        directionName: stop.directionName || 'Direction Info Unavailable' // Use GTFS directionName
+      };
+    }
+  }, [filteredArrivals, station, stop]);
+  // --- End Derive Display Info ---
+  
   return (
     <Card className={cn('p-4 rounded-lg', className)}>
-      {/* Favorite stop header */}
+      {/* Favorite stop header - Updated to use derived displayInfo */}
       <div className="flex items-center mb-3">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <h3 className="font-semibold">{station.stationName}</h3>
-            <p className="text-xs text-muted-foreground">{stop.directionName}</p>
+        <div className="flex items-center gap-2 min-w-0"> {/* Added min-w-0 */} 
+          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <div className="flex-grow">
+            <h3 className="font-semibold truncate" title={displayInfo.stationName}>{displayInfo.stationName}</h3>
+            <p className="text-xs text-muted-foreground truncate" title={displayInfo.directionName}>{displayInfo.directionName}</p>
           </div>
         </div>
       </div>

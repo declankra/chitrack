@@ -11,7 +11,7 @@ import { useRefreshAnimation } from '@/lib/hooks/useRefreshAnimation';
 import { formatRelativeTime, parseCtaDate, formatTimeDisplay, filterStaleArrivals } from '@/lib/utilities/timeUtils';
 import { findStopById } from '@/lib/utilities/findStop';
 import { useTime } from '@/lib/providers/TimeProvider';
-import type { Station, Arrival } from '@/lib/types/cta';
+import type { Station, Arrival, StationStop } from '@/lib/types/cta';
 import ArrivalTimeDisplay from '@/components/shared/ArrivalTimeDisplay';
 
 interface HomeStopSectionProps {
@@ -31,8 +31,9 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
   // Use the centralized time provider instead of a local timer
   const { currentTime } = useTime();
   
-  // Get home stop details
-  const homeStopDetails = findStopById(homeStopId, stations);
+  // Get home stop details from static data (can be used as fallback)
+  // We primarily rely on arrival data now for display, but this can be useful.
+  const staticHomeStopDetails = useMemo(() => findStopById(homeStopId, stations), [homeStopId, stations]);
   
   // Fetch arrivals for home stop
   const {
@@ -50,9 +51,30 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
   // Filter stale arrivals
   const filteredArrivals = useMemo(() => {
     if (!homeStopArrivals?.arrivals) return [];
-    return filterStaleArrivals(homeStopArrivals.arrivals, 2, currentTime);
+    // Apply filtering based on arrival time
+    return filterStaleArrivals(homeStopArrivals.arrivals, 2, currentTime); 
   }, [homeStopArrivals, currentTime]);
   
+  // --- Derive Display Info from Arrivals (or fallback) ---
+  const displayInfo = useMemo(() => {
+    if (homeStopArrivals?.arrivals && homeStopArrivals.arrivals.length > 0) {
+      // Use the first arrival's data as representative for the stop header
+      const firstArrival = homeStopArrivals.arrivals[0];
+      return {
+        stationName: firstArrival.staNm,
+        directionName: firstArrival.stpDe || 'Direction Info Unavailable' // Use stpDe
+      };
+    } else if (staticHomeStopDetails) {
+      // Fallback to static GTFS data if no arrivals are present
+      return {
+        stationName: staticHomeStopDetails.station.stationName,
+        directionName: staticHomeStopDetails.stop.directionName || 'Direction Info Unavailable' // Use GTFS directionName
+      };
+    }
+    return { stationName: 'Loading...', directionName: 'Loading...' }; // Default loading state
+  }, [homeStopArrivals, staticHomeStopDetails]);
+  // --- End Derive Display Info ---
+
   // Handle refresh with animation
   const handleRefresh = () => {
     triggerAnimation();
@@ -60,7 +82,7 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
   };
 
   // If no home stop is set
-  if (!homeStopId || !homeStopDetails) {
+  if (!homeStopId || !staticHomeStopDetails) {
     return (
       <Card className={cn("", className)}>
         <CardHeader className="pb-2">
@@ -118,12 +140,12 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
       </CardHeader>
       
       <CardContent>
-        {/* Home stop information */}
-        <div className="flex items-center gap-2 mb-2">
-          <MapPin className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <h3 className="font-semibold">{homeStopDetails.station.stationName}</h3>
-            <p className="text-xs text-muted-foreground">{homeStopDetails.stop.stopName}</p>
+        {/* Home stop information - Updated to use derived displayInfo */}
+        <div className="flex items-center gap-2 mb-3">
+          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <div className="flex-grow min-w-0"> {/* Added min-w-0 for flex shrink */} 
+            <h3 className="font-semibold truncate" title={displayInfo.stationName}>{displayInfo.stationName}</h3>
+            <p className="text-xs text-muted-foreground truncate" title={displayInfo.directionName}>{displayInfo.directionName}</p>
           </div>
         </div>
         
