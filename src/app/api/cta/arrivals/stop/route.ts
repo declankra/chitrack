@@ -272,100 +272,74 @@ async function fetchFreshStopData(stopId: string, cacheKey: string): Promise<Sto
  * - short-term caching (30s) via Redis
  */
 export async function GET(request: NextRequest) {
-  const startTime = Date.now();
-  let stopId: string | null = null;
-  
+  // Extract stop ID from query parameters
+  const stopId = request.nextUrl.searchParams.get('stopId');
+  if (!stopId) {
+    return NextResponse.json({ message: 'stopId parameter is required' }, { status: 400 });
+  }
+
+  // Check for the force refresh header
+  const forceRefresh = request.headers.get('x-force-refresh') === 'true';
+
+  // Define cache key
+  const cacheKey = `cta-arrivals:stop:${stopId}`;
+
+  // If not forcing refresh, check cache first
+  if (!forceRefresh) {
+    try {
+      const [cachedData, timestamp, getError] = await RedisCacheHandler.getCachedData(cacheKey);
+
+      if (getError) {
+        console.warn(`Cache read error, proceeding to fetch: ${getError.message}`);
+      } else if (cachedData && timestamp && RedisCacheHandler.isCacheFresh(timestamp)) {
+        // Cache is fresh, return cached data
+        console.log(`Returning fresh cached data for stop ${stopId}`);
+        return NextResponse.json(cachedData, {
+          headers: {
+            'X-Cache-Hit': 'true',
+            'X-Cache-Timestamp': timestamp.toString(),
+          },
+        });
+      } else if (cachedData && timestamp && !RedisCacheHandler.isCacheTooStale(timestamp)) {
+        // Cache is stale but not too old, return it but trigger background update
+        console.log(`Returning stale cache for stop ${stopId} & refreshing in background`);
+        fetchFreshStopData(stopId, cacheKey).catch(err => {
+          console.error(`Background refresh failed for stop ${stopId}:`, err);
+        }); // Fire and forget background update
+        return NextResponse.json(cachedData, {
+          headers: {
+            'X-Cache-Hit': 'stale',
+            'X-Cache-Timestamp': timestamp.toString(),
+          },
+        });
+      } else if (cachedData) {
+        console.log(`Cache is too stale for stop ${stopId}, fetching fresh data.`);
+      } else {
+        console.log(`Cache miss for stop ${stopId}, fetching fresh data.`);
+      }
+    } catch (err) {
+      // Log any unexpected errors during cache check but proceed to fetch
+      console.error(`Unexpected error during cache check for stop ${stopId}:`, err);
+    }
+  } else {
+    console.log(`Force refresh requested for stop ${stopId}, bypassing cache.`);
+  }
+
+  // If cache is missed, stale, or force refresh is true, fetch fresh data
   try {
-    if (!CTA_API_KEY) {
-      return NextResponse.json(
-        { error: "CTA_TRAIN_API_KEY not set in environment." },
-        { status: 500 }
-      );
-    }
-
-    const { searchParams } = new URL(request.url);
-    stopId = searchParams.get("stopId");
-    if (!stopId) {
-      return NextResponse.json(
-        { error: "Please provide a 'stopId' query param (3xxxx)." },
-        { status: 400 }
-      );
-    }
-
-    const cacheKey = `arrivals_stop_${stopId}`;
-
-    // Try to get from cache with timestamp validation
-    let [cachedData, cacheTimestamp, cacheError] = await RedisCacheHandler.getCachedData(cacheKey);
-    let isFreshData = false;
-    
-    // Get request-specific headers to check for refresh behaviors
-    const forceRefresh = request.headers.get('x-force-refresh') === 'true';
-    
-    // Check if we have recently updated data (within last 30 seconds)
-    const isCacheFresh = RedisCacheHandler.isCacheFresh(cacheTimestamp);
-    
-    // Only fetch fresh data if:
-    // 1. We have no cached data at all, OR
-    // 2. Data is too stale (> 1 min), OR
-    // 3. Force refresh is requested, OR
-    // 4. Data is not fresh (> 30s)
-    let shouldFetchFresh = !cachedData || 
-                         RedisCacheHandler.isCacheTooStale(cacheTimestamp) || 
-                         forceRefresh ||
-                         !isCacheFresh;
-    
-    // If we hit cache and it's not too stale, use it immediately
-    if (cachedData && !RedisCacheHandler.isCacheTooStale(cacheTimestamp)) {
-      const dataAge = cacheTimestamp ? (Date.now() - cacheTimestamp) / 1000 : 'unknown';
-      // console.log(`Using cached data for ${cacheKey}, age: ${dataAge} seconds`);
-      
-      // If data is fresh, mark it as fresh
-      if (isCacheFresh) {
-        isFreshData = true;
-      }
-      
-      // For background refresh, we only do it if a specific parameter is set
-      const allowBackgroundRefresh = request.headers.get('x-allow-background') === 'true';
-      if (!isFreshData && allowBackgroundRefresh && !forceRefresh) {
-        // console.log(`Cache hit but stale, initiating background refresh for ${cacheKey}`);
-        // Use .catch to prevent background fetch from affecting main response
-        fetchFreshStopData(stopId, cacheKey).catch(err => 
-          console.error(`Background refresh failed for ${cacheKey}:`, err)
-        );
-      }
-      
-      // Return cached data immediately
-      return NextResponse.json(cachedData, {
-        headers: {
-          'X-Cache': 'HIT',
-          'X-Cache-Age': cacheTimestamp ? `${(Date.now() - cacheTimestamp) / 1000}` : 'unknown',
-          'X-Cache-Fresh': isFreshData ? 'true' : 'false'
-        }
-      });
-    }
-
-    // If we need fresh data and don't have usable cache, fetch it now
-    // console.log(`Cache miss or too stale for ${cacheKey}, fetching fresh data`);
-    const result = await fetchFreshStopData(stopId, cacheKey);
-    
-    const processingTime = Date.now() - startTime;
-    // console.log(`Total processing time: ${processingTime}ms for ${cacheKey}`);
-    
-    return NextResponse.json(result, {
+    const freshData = await fetchFreshStopData(stopId, cacheKey); // Pass cacheKey for caching
+    console.log(`Returning fresh data for stop ${stopId}`);
+    return NextResponse.json(freshData, {
       headers: {
-        'X-Cache': 'MISS',
-        'X-Processing-Time': `${processingTime}`
-      }
+        'X-Cache-Hit': 'false',
+      },
     });
   } catch (error: any) {
-    console.error("Error in Stop Arrivals API route:", error);
-    
+    console.error(`Error fetching fresh CTA data for stop ${stopId}:`, error);
+    // Consider returning last known stale data if available and error occurs?
+    // For now, return a server error
     return NextResponse.json(
-      { 
-        error: "Server error fetching stop arrivals.", 
-        details: error?.message || "Unknown error",
-        stop_id: stopId || "none"
-      },
+      { message: `Failed to fetch arrival data: ${error.message || 'Unknown error'}` },
       { status: 500 }
     );
   }
