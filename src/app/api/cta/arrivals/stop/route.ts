@@ -96,7 +96,7 @@ async function fetchCtaApiWithRetry(url: string, retryCount = 0): Promise<Respon
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CTA_API_TIMEOUT_MS);
     
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, { signal: controller.signal, cache: 'no-store' });
     clearTimeout(timeoutId);
     
     if (!response.ok) {
@@ -339,7 +339,8 @@ export async function GET(request: NextRequest) {
         headers: {
           'X-Cache': 'HIT',
           'X-Cache-Age': cacheTimestamp ? `${(Date.now() - cacheTimestamp) / 1000}` : 'unknown',
-          'X-Cache-Fresh': isFreshData ? 'true' : 'false'
+          'X-Cache-Fresh': isFreshData ? 'true' : 'false',
+          'Cache-Control': 'no-store'
         }
       });
     }
@@ -354,7 +355,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result, {
       headers: {
         'X-Cache': 'MISS',
-        'X-Processing-Time': `${processingTime}`
+        'X-Processing-Time': `${processingTime}`,
+        'Cache-Control': 'no-store'
       }
     });
   } catch (error: any) {
