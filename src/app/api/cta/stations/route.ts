@@ -1,14 +1,9 @@
 // src/app/api/cta/stations/route.ts
 import { NextResponse } from 'next/server';
-import redis from '@/lib/redis';
 import { Station } from '@/lib/types/cta';
 import { fetchGtfsStations } from '@/lib/gtfs';
 
 export const dynamic = 'force-dynamic';
-
-// Redis cache configuration
-const STATIONS_CACHE_KEY = 'CTA_STATIONS_DATA';
-const CACHE_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 /**
  * Fetch fresh station data from CTA GTFS feed
@@ -85,62 +80,23 @@ async function fetchFreshStationData(): Promise<Station[]> {
 }
 
 /**
- * Cache station data in Redis
+ * Main function to retrieve station data, now directly fetches fresh data.
  */
-async function cacheStationData(stations: Station[]): Promise<void> {
+async function fetchStationsDirectly(): Promise<Station[]> {
     try {
-        await redis.setex(STATIONS_CACHE_KEY, CACHE_TTL_SECONDS, JSON.stringify(stations));
-        console.log(`Successfully cached ${stations.length} stations for 7 days`);
-    } catch (error) {
-        console.error('Failed to cache station data:', error);
-    }
-}
-
-/**
- * Retrieve cached station data from Redis
- */
-async function getCachedStations(): Promise<Station[] | null> {
-    try {
-        const cachedData = await redis.get(STATIONS_CACHE_KEY);
-        if (!cachedData) return null;
-        return JSON.parse(cachedData) as Station[];
-    } catch (error) {
-        console.error('Failed to retrieve cached station data:', error);
-        return null;
-    }
-}
-
-/**
- * Main function to retrieve station data, using cache when available
- * and falling back to fresh API fetch when needed.
- */
-async function fetchStationsDynamic(): Promise<Station[]> {
-    try {
-        console.log('Attempting to fetch stations data...');
-        // First try to get from cache
-        const cachedStations = await getCachedStations();
-        if (cachedStations) {
-            console.log('Retrieved stations from cache:', {
-                count: cachedStations.length
-            });
-            return cachedStations;
-        }
-
-        // If not in cache, fetch fresh data
-        console.log('Cache miss - fetching fresh station data');
+        console.log('Fetching fresh station data directly...');
+        // Fetch fresh data
         const stations = await fetchFreshStationData();
-        
-        // Cache the fresh data for next time
-        await cacheStationData(stations);
-        console.log('Fresh stations data fetched and cached:', {
+        console.log('Fresh stations data fetched:', {
             count: stations.length
         });
-        
         return stations;
     } catch (error) {
         console.error('Error fetching station data:', error);
-        // Return fallback data without trying to fetch again
-        console.log('Returning fallback station data');
+        // Return fallback data if fetch fails
+        console.log('Returning fallback station data due to error');
+        // Reuse the fallback logic from the original fetchFreshStationData error handling
+        // Or define a simpler fallback if preferred
         return [
             {
                 stationId: "40360",
@@ -200,12 +156,12 @@ async function fetchStationsDynamic(): Promise<Station[]> {
 
 /**
  * GET handler for /api/cta/stations
- * Returns station data from cache or fetches fresh data
+ * Returns station data by directly fetching fresh data
  */
 export async function GET() {
     try {
-        console.log('Stations API endpoint called');
-        const stations = await fetchStationsDynamic();
+        console.log('Stations API endpoint called - fetching directly');
+        const stations = await fetchStationsDirectly();
         
         return NextResponse.json(stations);
     } catch (error) {

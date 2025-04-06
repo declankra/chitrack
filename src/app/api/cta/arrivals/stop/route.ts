@@ -1,14 +1,11 @@
 // src/app/api/cta/arrivals/stop/route.ts
 import { NextRequest, NextResponse } from "next/server"
-import redis from "@/lib/redis"
 import { Arrival, ArrivalsApiResponse, StopArrivalsResponse } from "@/lib/types/cta"
 
 export const dynamic = 'force-dynamic';
 
 // Configuration constants
 const CTA_API_KEY = process.env.CTA_TRAIN_API_KEY
-const CACHE_TTL_SECONDS = 15 // 15 seconds TTL for fresh cache (reduced from 30)
-const STALE_TTL_SECONDS = 15 // 15 seconds for stale data (reduced from 30-60)
 const CTA_API_TIMEOUT_MS = 5000 // 5 seconds timeout for CTA API
 const MAX_RETRIES = 2 // Maximum number of retries for CTA API
 const MAX_PAST_MINUTES = 2 // 2 minutes in the past to still show an arrival
@@ -125,75 +122,9 @@ async function fetchCtaApiWithRetry(url: string, retryCount = 0): Promise<Respon
 }
 
 /**
- * Handles Redis cache operations with better error handling
+ * Fetch fresh data directly from CTA API for a given stop ID
  */
-class RedisCacheHandler {
-  /**
-   * Try to get data from Redis cache
-   * @returns [data, timestamp, error] - data and timestamp if found, null and error otherwise
-   */
-  static async getCachedData(key: string): Promise<[any | null, number | null, Error | null]> {
-    try {
-      const result = await redis.hgetall(key);
-      
-      if (!result || !result.data) return [null, null, null];
-      
-      const timestamp = result.timestamp ? parseInt(result.timestamp) : null;
-      return [JSON.parse(result.data), timestamp, null];
-    } catch (err) {
-      console.warn(`Redis get error for key ${key}:`, err);
-      return [null, null, err as Error];
-    }
-  }
-
-  /**
-   * Check if cached data is fresh enough
-   */
-  static isCacheFresh(timestamp: number | null): boolean {
-    if (!timestamp) return false;
-    
-    const ageMs = Date.now() - timestamp;
-    return ageMs < CACHE_TTL_SECONDS * 1000;
-  }
-
-  /**
-   * Check if cached data is too stale to use
-   */
-  static isCacheTooStale(timestamp: number | null): boolean {
-    if (!timestamp) return true;
-    
-    const ageMs = Date.now() - timestamp;
-    return ageMs > STALE_TTL_SECONDS * 1000;
-  }
-
-  /**
-   * Cache data in Redis with better error handling
-   */
-  static async cacheData(key: string, data: any): Promise<void> {
-    try {
-      const timestamp = Date.now();
-      
-      // Store both data and timestamp in a single hash key
-      await redis.hset(
-        key,
-        'data', JSON.stringify(data),
-        'timestamp', timestamp.toString()
-      );
-      
-      // Set expiration on the hash
-      await redis.expire(key, CACHE_TTL_SECONDS);
-      
-      console.log(`Successfully cached data for key ${key}`);
-    } catch (err) {
-      console.warn(`Redis caching failed for key ${key}:`, err);
-    }
-  }
-}
-
-/**
- * Fetch fresh data from CTA API and cache it
- */
-async function fetchFreshStopData(stopId: string, cacheKey: string): Promise<StopArrivalsResponse> {
+async function fetchFreshStopData(stopId: string): Promise<StopArrivalsResponse> {
   // Build CTA Arrivals request
   const baseUrl = "https://lapi.transitchicago.com/api/1.0/ttarrivals.aspx";
   const urlParams = new URLSearchParams({
@@ -204,20 +135,27 @@ async function fetchFreshStopData(stopId: string, cacheKey: string): Promise<Sto
   });
   
   const ctaUrl = `${baseUrl}?${urlParams.toString()}`;
-  // console.log(`Requesting fresh data from CTA API for stop: ${stopId}`);
+  console.log(`Requesting fresh data from CTA API for stop: ${stopId}`);
   
   try {
     // Fetch with retry and timeout
     const ctaResponse = await fetchCtaApiWithRetry(ctaUrl);
-    const data = await ctaResponse.json();
+    const data: ArrivalsApiResponse = await ctaResponse.json();
     
-    if (!data?.ctatt?.eta) {
-      console.error("CTA API did not return arrivals (eta):", data);
-      throw new Error("CTA API did not return arrivals data. Possibly an error.");
+    // Check for CTA API-level errors
+    if (data.ctatt.errCd !== "0") {
+      console.error(
+        "CTA API Error:",
+        data.ctatt.errNm,
+        "(Code:",
+        data.ctatt.errCd,
+        ")"
+      );
+      throw new Error(`CTA API Error: ${data.ctatt.errNm}`);
     }
 
-    const rawArrivals: Arrival[] = data.ctatt.eta;
-    // console.log(`CTA API returned ${rawArrivals.length} raw arrivals for stop ${stopId}`);
+    const rawArrivals: Arrival[] = data.ctatt.eta || [];
+    console.log(`CTA API returned ${rawArrivals.length} raw arrivals for stop ${stopId}`);
     
     let result: StopArrivalsResponse;
     
@@ -225,20 +163,20 @@ async function fetchFreshStopData(stopId: string, cacheKey: string): Promise<Sto
       // no arrivals returned
       result = {
         stopId,
-        stopName: "",
+        stopName: "Unknown Stop", // Provide a default name if none found
         route: "",
         arrivals: [],
       };
     } else {
       // We assume all arrivals share the same stpId/stpDe if the CTA returned multiple
       const stpId = rawArrivals[0].stpId;
-      const stpDe = rawArrivals[0].stpDe || ""; // Add fallback for empty stop description
+      const stpDe = rawArrivals[0].stpDe || "Unknown Stop"; // Add fallback for empty stop description
       const route = rawArrivals[0].rt;
 
       // Filter out arrivals that are too far in the past
       // But make sure we don't end up with empty results
       const relevantArrivals = filterRelevantArrivals(rawArrivals);
-      // console.log(`After filtering: ${relevantArrivals.length} relevant arrivals remain`);
+      console.log(`After filtering: ${relevantArrivals.length} relevant arrivals remain`);
       
       // Sort remaining arrivals by time ascending
       relevantArrivals.sort((a, b) => parseArrivalTime(a.arrT) - parseArrivalTime(b.arrT));
@@ -250,31 +188,31 @@ async function fetchFreshStopData(stopId: string, cacheKey: string): Promise<Sto
       result = {
         stopId: stpId,
         stopName: stpDe,
-        route,
-        arrivals,
+        route: route,
+        arrivals: arrivals,
       };
     }
     
-    // Cache the results
-    await RedisCacheHandler.cacheData(cacheKey, result);
-    
-    // console.log(`Successfully processed and cached arrivals for stop ${stopId}`);
+    console.log(`Successfully processed data for stop ${stopId}`);
     return result;
+
   } catch (error) {
-    console.error(`Failed to fetch data from CTA API for ${cacheKey}:`, error);
-    throw error;
+    console.error(`Failed to fetch or process CTA data for stop ${stopId}:`, error);
+    // Rethrow the error to be handled by the main GET handler
+    throw error; 
   }
 }
 
 /**
- * GET /api/cta/arrivals/stop?stopId=30070
- * - Returns up to 3 arrivals for a specific platform "stopId" (3xxxx)
- * - short-term caching (30s) via Redis
+ * GET /api/cta/arrivals/stop?stopid=30170
+ *
+ * - Fetches arrivals for a single CTA stop ID.
+ * - Returns up to 3 upcoming arrivals, sorted by time.
+ * - Directly fetches data from CTA API on each request.
  */
 export async function GET(request: NextRequest) {
-  const startTime = Date.now();
-  let stopId: string | null = null;
-  
+  let stopIdParam: string | null = null;
+
   try {
     if (!CTA_API_KEY) {
       return NextResponse.json(
@@ -284,89 +222,37 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    stopId = searchParams.get("stopId");
-    if (!stopId) {
+    stopIdParam = searchParams.get("stopid");
+    if (!stopIdParam) {
       return NextResponse.json(
-        { error: "Please provide a 'stopId' query param (3xxxx)." },
+        { error: "Please provide a 'stopid' query parameter." },
         { status: 400 }
       );
     }
-
-    const cacheKey = `arrivals_stop_${stopId}`;
-
-    // Try to get from cache with timestamp validation
-    let [cachedData, cacheTimestamp, cacheError] = await RedisCacheHandler.getCachedData(cacheKey);
-    let isFreshData = false;
     
-    // Get request-specific headers to check for refresh behaviors
-    const forceRefresh = request.headers.get('x-force-refresh') === 'true';
-    
-    // Check if we have recently updated data (within last 30 seconds)
-    const isCacheFresh = RedisCacheHandler.isCacheFresh(cacheTimestamp);
-    
-    // Only fetch fresh data if:
-    // 1. We have no cached data at all, OR
-    // 2. Data is too stale (> 1 min), OR
-    // 3. Force refresh is requested, OR
-    // 4. Data is not fresh (> 30s)
-    let shouldFetchFresh = !cachedData || 
-                         RedisCacheHandler.isCacheTooStale(cacheTimestamp) || 
-                         forceRefresh ||
-                         !isCacheFresh;
-    
-    // If we hit cache and it's not too stale, use it immediately
-    if (cachedData && !RedisCacheHandler.isCacheTooStale(cacheTimestamp)) {
-      const dataAge = cacheTimestamp ? (Date.now() - cacheTimestamp) / 1000 : 'unknown';
-      // console.log(`Using cached data for ${cacheKey}, age: ${dataAge} seconds`);
-      
-      // If data is fresh, mark it as fresh
-      if (isCacheFresh) {
-        isFreshData = true;
-      }
-      
-      // For background refresh, we only do it if a specific parameter is set
-      const allowBackgroundRefresh = request.headers.get('x-allow-background') === 'true';
-      if (!isFreshData && allowBackgroundRefresh && !forceRefresh) {
-        // console.log(`Cache hit but stale, initiating background refresh for ${cacheKey}`);
-        // Use .catch to prevent background fetch from affecting main response
-        fetchFreshStopData(stopId, cacheKey).catch(err => 
-          console.error(`Background refresh failed for ${cacheKey}:`, err)
-        );
-      }
-      
-      // Return cached data immediately
-      return NextResponse.json(cachedData, {
-        headers: {
-          'X-Cache': 'HIT',
-          'X-Cache-Age': cacheTimestamp ? `${(Date.now() - cacheTimestamp) / 1000}` : 'unknown',
-          'X-Cache-Fresh': isFreshData ? 'true' : 'false',
-          'Cache-Control': 'no-store'
-        }
-      });
+    const stopId = stopIdParam.trim();
+    if (stopId === "") {
+      return NextResponse.json(
+        { error: "Invalid stopid parameter provided." },
+        { status: 400 }
+      );
     }
+    
+    console.log(`API call for stop arrivals: ${stopId}`);
 
-    // If we need fresh data and don't have usable cache, fetch it now
-    // console.log(`Cache miss or too stale for ${cacheKey}, fetching fresh data`);
-    const result = await fetchFreshStopData(stopId, cacheKey);
-    
-    const processingTime = Date.now() - startTime;
-    // console.log(`Total processing time: ${processingTime}ms for ${cacheKey}`);
-    
-    return NextResponse.json(result, {
-      headers: {
-        'X-Cache': 'MISS',
-        'X-Processing-Time': `${processingTime}`,
-        'Cache-Control': 'no-store'
-      }
-    });
+    // Directly fetch fresh data for the stop
+    const result = await fetchFreshStopData(stopId);
+
+    // Return the fresh data
+    return NextResponse.json(result);
+
   } catch (error: any) {
     console.error("Error in Stop Arrivals API route:", error);
-    
     return NextResponse.json(
       { 
         error: "Server error fetching stop arrivals.", 
         details: error?.message || "Unknown error",
-        stop_id: stopId || "none"
+        stop_id: stopIdParam || "none"
       },
       { status: 500 }
     );

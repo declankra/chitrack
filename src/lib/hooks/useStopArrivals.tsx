@@ -94,7 +94,7 @@ export const useStopArrivals = (
         }
         
         // Set custom headers to help the API determine caching strategy
-        const response = await fetch(`/api/cta/arrivals/stop?stopId=${stopId}`, fetchOptions);
+        const response = await fetch(`/api/cta/arrivals/stop?stopid=${stopId}`, fetchOptions);
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status} – ${response.statusText || 'Network error'}`);
@@ -209,7 +209,7 @@ export const useMultipleStopArrivals = (
               fetchOptions.signal = abortControllerRef.current.signal;
             }
             
-            const response = await fetch(`/api/cta/arrivals/stop?stopId=${stopId}`, fetchOptions);
+            const response = await fetch(`/api/cta/arrivals/stop?stopid=${stopId}`, fetchOptions);
             
             if (!response.ok) {
               throw new Error(`Failed to fetch arrivals for stop ${stopId}`);

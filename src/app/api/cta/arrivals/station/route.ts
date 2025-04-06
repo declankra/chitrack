@@ -3,18 +3,14 @@
 // i think it is only necessary to request 1 station at a time, so we can just make a request for each station.
 
 import { NextRequest, NextResponse } from "next/server";
-import redis from "@/lib/redis";
 import { Arrival, ArrivalsApiResponse, StationArrivalsResponse } from "@/lib/types/cta";
 
 export const dynamic = 'force-dynamic';
 
 // Configuration constants
 const CTA_API_KEY = process.env.CTA_TRAIN_API_KEY;
-const CACHE_TTL_SECONDS = 15; // 15 seconds TTL for fresh cache (reduced from 30)
-const STALE_TTL_SECONDS = 15; // 15 seconds for stale data (reduced from 30-60)
 const CTA_API_TIMEOUT_MS = 5000; // 5 seconds timeout for CTA API
 const MAX_RETRIES = 2; // Maximum number of retries for CTA API
-const THROTTLE_MS = 5000; // 5 seconds minimum between full refreshes (reduced from 10s)
 const MAX_PAST_MINUTES = 2; // 2 minutes in the past to still show an arrival
 const TIME_OFFSET_MS = 5000; // Adjustable time offset to correct for server/CTA time differences
 
@@ -184,236 +180,95 @@ function processArrivals(rawArrivals: Arrival[]): StationArrivalsResponse[] {
 }
 
 /**
- * Handles Redis cache operations with better error handling
+ * Fetch fresh arrival data directly from CTA API for given station IDs
+ * @param stationIds Array of CTA station IDs (mapids)
+ * @returns Processed arrival data
  */
-class RedisCacheHandler {
-  /**
-   * Try to get data from Redis cache
-   * @returns [data, timestamp, error] - data and timestamp if found, null and error otherwise
-   */
-  static async getCachedData(key: string): Promise<[any | null, number | null, Error | null]> {
-    try {
-      const result = await redis.hgetall(key);
-      
-      if (!result || !result.data) return [null, null, null];
-      
-      const timestamp = result.timestamp ? parseInt(result.timestamp) : null;
-      return [JSON.parse(result.data), timestamp, null];
-    } catch (err) {
-      console.warn(`Redis get error for key ${key}:`, err);
-      return [null, null, err as Error];
-    }
+async function fetchFreshData(stationIds: string[]): Promise<StationArrivalsResponse[]> {
+  console.log('Fetching fresh data from CTA API for stations:', stationIds);
+
+  if (!CTA_API_KEY) {
+    throw new Error("CTA API key not configured.");
   }
 
-  /**
-   * Check if cached data is fresh enough
-   */
-  static isCacheFresh(timestamp: number | null): boolean {
-    if (!timestamp) return false;
-    
-    const ageMs = Date.now() - timestamp;
-    return ageMs < CACHE_TTL_SECONDS * 1000;
-  }
+  // Construct URL for multiple stations (max 4)
+  const ctaUrl = `https://lapi.transitchicago.com/api/1.0/ttarrivals.aspx?key=${CTA_API_KEY}&mapid=${stationIds.join(',')}&outputType=JSON`;
 
-  /**
-   * Check if cached data is too stale to use
-   */
-  static isCacheTooStale(timestamp: number | null): boolean {
-    if (!timestamp) return true;
-    
-    const ageMs = Date.now() - timestamp;
-    return ageMs > STALE_TTL_SECONDS * 1000;
-  }
-
-  /**
-   * Cache data in Redis with better error handling
-   */
-  static async cacheData(key: string, data: any): Promise<void> {
-    try {
-      const timestamp = Date.now();
-      
-      // Store both data and timestamp in a single hash key
-      await redis.hset(
-        key,
-        'data', JSON.stringify(data),
-        'timestamp', timestamp.toString()
-      );
-      
-      // Set expiration on the hash
-      await redis.expire(key, CACHE_TTL_SECONDS);
-      
-      console.log(`Successfully cached data for key ${key}`);
-    } catch (err) {
-      // Log but don't fail the request
-      console.warn(`Redis caching failed for key ${key}:`, err);
-    }
-  }
-}
-
-/**
- * Fetch fresh data from CTA API and cache it
- * This is separated to allow for background refresh
- */
-async function fetchFreshData(stationIds: string[], cacheKey: string): Promise<StationArrivalsResponse[]> {
-  // Build CTA request for all stations using multiple &mapid=
-  const baseUrl = "https://lapi.transitchicago.com/api/1.0/ttarrivals.aspx";
-  const urlParams = new URLSearchParams({
-    key: CTA_API_KEY!,
-    outputType: "JSON",
-    // Request a generous number of arrivals as multiple stops might be returned
-    max: "1000",
-  });
-  
-  stationIds.forEach((id) => {
-    urlParams.append("mapid", id);
-  });
-
-  const ctaUrl = `${baseUrl}?${urlParams.toString()}`;
-  // console.log(`Requesting fresh data from CTA API for stations: ${stationIds.join(",")}`);
-  
   try {
-    // Fetch with retry and timeout
     const ctaResponse = await fetchCtaApiWithRetry(ctaUrl);
-    const data = await ctaResponse.json();
-    
-    if (!data?.ctatt?.eta) {
-      console.error("CTA API did not return arrivals (eta):", data);
-      throw new Error("CTA API did not return arrivals data. Possibly an error.");
+    const rawData: ArrivalsApiResponse = await ctaResponse.json();
+
+    // Check for CTA API-level errors
+    if (rawData.ctatt.errCd !== "0") {
+      console.error(
+        "CTA API Error:",
+        rawData.ctatt.errNm,
+        "(Code:",
+        rawData.ctatt.errCd,
+        ")"
+      );
+      throw new Error(`CTA API Error: ${rawData.ctatt.errNm}`);
     }
 
-    const rawArrivals: Arrival[] = data.ctatt.eta;
-    // console.log(`CTA API returned ${rawArrivals.length} raw arrivals for stations ${stationIds.join(",")}`);
-    
-    const result = processArrivals(rawArrivals);
-    
-    // Cache the results
-    await RedisCacheHandler.cacheData(cacheKey, result);
-    
-    // console.log(`Successfully processed and cached ${rawArrivals.length} arrivals into ${result.length} stations`);
+    // Process the arrivals
+    const result = processArrivals(rawData.ctatt.eta || []);
+    console.log(`Successfully fetched and processed data for ${stationIds.length} stations.`);
     return result;
+
   } catch (error) {
-    console.error(`Failed to fetch data from CTA API for ${cacheKey}:`, error);
-    throw error;
+    console.error(`Failed to fetch or process CTA data for stations ${stationIds.join(',')}:`, error);
+    // In case of error, return empty array or handle as needed
+    return []; 
   }
 }
 
 /**
- * GET /api/cta/arrivals/stations?stations=40360,40380,...
+ * GET handler for /api/cta/arrivals/station
+ * Fetches arrival data directly from CTA API for requested stations.
  *
- * 1. Accepts a comma-separated list of station IDs in the query string
- * 2. Builds a single CTA Arrivals request with multiple &mapid=...
- * 3. Groups results by station, then by stpId under that station
- * 4. Returns up to 3 arrivals per stop ID in ascending arrT order
- * 5. Implements stale-while-revalidate caching via Redis
+ * Usage: GET /api/cta/arrivals/station?mapids=40380,41450
  */
 export async function GET(request: NextRequest) {
-  const startTime = Date.now();
-  let stationsParam: string | null = null;
-  
   try {
-    if (!CTA_API_KEY) {
-      return NextResponse.json(
-        { error: "CTA_TRAIN_API_KEY not set in environment." },
-        { status: 500 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
-    stationsParam = searchParams.get("stations");
-    if (!stationsParam) {
+    const mapidsParam = searchParams.get("mapids");
+
+    if (!mapidsParam) {
       return NextResponse.json(
-        { error: "Please provide a comma-separated 'stations' query param." },
+        { error: "Missing required parameter: mapids" },
         { status: 400 }
       );
     }
 
-    // Split stations, remove empty
-    const stationIdsRaw = stationsParam.split(",");
-    const stationIds = stationIdsRaw.map((s) => s.trim()).filter((s) => s !== "");
+    // Split and validate mapids (basic validation)
+    const stationIds = mapidsParam.split(',').filter(id => id.trim() !== '');
     if (stationIds.length === 0) {
       return NextResponse.json(
-        { error: "No valid station IDs provided." },
+        { error: "Invalid mapids parameter: must contain at least one ID" },
+        { status: 400 }
+      );
+    }
+    
+    // Limit the number of stations per request (CTA limit is around 4-5)
+    if (stationIds.length > 4) {
+      return NextResponse.json(
+        { error: "Too many station IDs requested. Maximum is 4 per request." },
         { status: 400 }
       );
     }
 
-    // Sort IDs to keep consistent cache key
-    stationIds.sort();
-    const cacheKey = `stationArrivals_${stationIds.join("_")}`;
+    console.log(`API call for station arrivals: ${stationIds.join(',')}`);
+    
+    // Directly fetch fresh data
+    const arrivalData = await fetchFreshData(stationIds);
 
-    // Try to get from cache
-    let [cachedData, cacheTimestamp, cacheError] = await RedisCacheHandler.getCachedData(cacheKey);
-    let isFreshData = false;
-    
-    // Get request-specific headers to check for refresh behaviors
-    const forceRefresh = request.headers.get('x-force-refresh') === 'true';
-    
-    // Check if the last request was too recent (for throttling)
-    const isThrottled = cacheTimestamp && ((Date.now() - cacheTimestamp) < THROTTLE_MS) && !forceRefresh;
-    
-    // Only fetch fresh data if:
-    // 1. We have no cached data at all, OR
-    // 2. Data is too stale (> 5 min), OR
-    // 3. Data is not fresh (> 30s) AND we're not being throttled
-    let shouldFetchFresh = !cachedData || 
-                         RedisCacheHandler.isCacheTooStale(cacheTimestamp) || 
-                         (!RedisCacheHandler.isCacheFresh(cacheTimestamp) && !isThrottled);
-    
-    // If we hit cache and it's not too stale, use it immediately
-    if (cachedData && !RedisCacheHandler.isCacheTooStale(cacheTimestamp)) {
-      const dataAge = cacheTimestamp ? (Date.now() - cacheTimestamp) / 1000 : 'unknown';
-      // console.log(`Using cached data for ${cacheKey}, age: ${dataAge} seconds`);
-      
-      // If data is fresh, mark it as fresh
-      if (RedisCacheHandler.isCacheFresh(cacheTimestamp)) {
-        isFreshData = true;
-      }
-      
-      // For background refresh, we only do it if a specific parameter is set, to avoid
-      // extra fetching when the client is using manual refresh mode
-      const allowBackgroundRefresh = request.headers.get('x-allow-background') === 'true';
-      if (!isFreshData && allowBackgroundRefresh) {
-        // console.log(`Cache hit but stale, initiating background refresh for ${cacheKey}`);
-        // Use .catch to prevent background fetch from affecting main response
-        fetchFreshData(stationIds, cacheKey).catch(err => 
-          console.error(`Background refresh failed for ${cacheKey}:`, err)
-        );
-      }
-      
-      // Return cached data immediately
-      return NextResponse.json(cachedData, {
-        headers: {
-          'X-Cache': 'HIT',
-          'X-Cache-Age': cacheTimestamp ? `${(Date.now() - cacheTimestamp) / 1000}` : 'unknown',
-          'X-Cache-Fresh': isFreshData ? 'true' : 'false',
-          'Cache-Control': 'no-store'
-        }
-      });
-    }
+    // Return the fresh data
+    return NextResponse.json(arrivalData);
 
-    // If we need fresh data and don't have usable cache, fetch it now
-    // console.log(`Cache miss or too stale for ${cacheKey}, fetching fresh data`);
-    const result = await fetchFreshData(stationIds, cacheKey);
-    
-    const processingTime = Date.now() - startTime;
-    // console.log(`Total processing time: ${processingTime}ms for ${cacheKey}`);
-    
-    return NextResponse.json(result, {
-      headers: {
-        'X-Cache': 'MISS',
-        'X-Processing-Time': `${processingTime}`,
-        'Cache-Control': 'no-store'
-      }
-    });
   } catch (error: any) {
-    console.error("Error in Station Arrivals API route:", error);
-    
+    console.error("Error in station arrivals API route:", error);
     return NextResponse.json(
-      { 
-        error: "Server error fetching station arrivals.", 
-        details: error?.message || "Unknown error",
-        station_ids: stationsParam || "none"
-      },
+      { error: "Server error fetching arrival data.", details: error.message },
       { status: 500 }
     );
   }

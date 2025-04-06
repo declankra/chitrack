@@ -95,7 +95,7 @@ export const useStationArrivals = (
         }
         
         // Set custom headers to help the API determine caching strategy
-        const response = await fetch(`/api/cta/arrivals/station?stations=${stationId}`, fetchOptions);
+        const response = await fetch(`/api/cta/arrivals/station?mapids=${stationId}`, fetchOptions);
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status} – ${response.statusText || 'Network error'}`);

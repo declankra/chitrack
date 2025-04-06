@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import redis from "@/lib/redis";
 
 export const dynamic = 'force-dynamic';
 
@@ -16,23 +15,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const mapid = searchParams.get("mapid") || "40380"; // default to 40380 for example
 
-    // Build a redis cache key using the mapid
-    const cacheKey = `cta_arrivals_${mapid}`;
-
-    // Try to get cached data
-    let cachedData = null;
-    try {
-      cachedData = await redis.get(cacheKey);
-    } catch (redisError) {
-      console.warn("Redis error, falling back to direct API call:", redisError);
-    }
-
-    if (cachedData) {
-      // If cached, parse and return it
-      return NextResponse.json(JSON.parse(cachedData));
-    }
-
-    // Otherwise, fetch fresh data from the CTA API
+    // Directly fetch fresh data from the CTA API
     // CTA API endpoint: e.g., https://lapi.transitchicago.com/api/1.0/ttarrivals.aspx
     // This example uses JSON output. Make sure you have a valid CTA API key.
     const ctaApiKey = process.env.CTA_TRAIN_API_KEY;
@@ -49,13 +32,6 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await ctaResponse.json();
-
-    // Try to cache the data, but don't fail if Redis is unavailable
-    try {
-      await redis.set(cacheKey, JSON.stringify(data), "EX", 30);
-    } catch (redisCacheError) {
-      console.warn("Failed to cache data in Redis:", redisCacheError);
-    }
 
     // Return fresh data
     return NextResponse.json(data);
