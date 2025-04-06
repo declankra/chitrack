@@ -57,7 +57,7 @@ export default function StopSelectorModal({
     try {
       console.log(`[Modal Fetch] Fetching arrivals for station: ${stationId}`);
       // Fetch real-time arrivals for the selected station
-      const response = await fetch(`/api/cta/arrivals/station?stations=${stationId}`);
+      const response = await fetch(`/api/cta/arrivals/station?mapids=${stationId}`);
       console.log(`[Modal Fetch] Response status: ${response.status}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch directions (${response.status})`);
