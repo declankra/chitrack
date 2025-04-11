@@ -25,11 +25,6 @@ export default function SettingsPage() {
   // Fetch station data
   const { data: stations = [], isLoading: stationsLoading } = useStations();
 
-  // Handle form submission
-  const handleSaveUserData = async (updatedData: UserData) => {
-    await saveUserData(updatedData);
-  };
-
   // Handle refresh user data
   const handleRefreshUserData = async () => {
     await refreshUserData();
@@ -62,7 +57,7 @@ export default function SettingsPage() {
         stationsLoading={stationsLoading}
         isSaving={isSaving}
         isFetching={isFetching}
-        onSave={handleSaveUserData}
+        onSave={saveUserData}
         onRefresh={handleRefreshUserData}
       />
       
