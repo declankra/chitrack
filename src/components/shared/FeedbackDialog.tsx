@@ -11,6 +11,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { getSupabase } from "@/lib/supabase";
+import { useUserData } from "@/lib/hooks/useUserData";
+
+// Fixed device ID for the web app
+const WEBAPP_DEVICE_ID = "webapp-main-user";
 
 // Component for individual rating buttons
 const RatingButton = ({ value, selected, onClick }: { 
@@ -35,6 +39,9 @@ const RatingButton = ({ value, selected, onClick }: {
 );
 
 export default function FeedbackDialog() {
+  // Get user data (mainly for paid status)
+  const { userData } = useUserData();
+
   // States for form inputs and dialogs
   const [rating, setRating] = useState<number | null>(null);
   const [feedback, setFeedback] = useState('');
@@ -45,24 +52,28 @@ export default function FeedbackDialog() {
   // Handle feedback submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rating) return;
+    if (rating === null) return;
+
+    // Use the fixed webapp device ID
+    const deviceId = WEBAPP_DEVICE_ID;
+    // Get current paid status from the potentially loaded user data
+    const paidStatusAtSubmission = userData?.paidUserStatus ?? false;
 
     try {
       setIsSubmitting(true);
       const supabase = getSupabase();
       
-      // Simulated userID - in production this would come from auth
-      const userID = 'demo-user';
-      
+      // Prepare data according to the schema, using the fixed ID
+      const feedbackData = {
+        device_id: deviceId, // Use fixed ID
+        rating: rating,
+        feedback: feedback || null,
+        paid_user_status_at_submission: paidStatusAtSubmission,
+      };
+
       await supabase
         .from('chitrack_feedback')
-        .insert([
-          { 
-            user_id: userID,
-            rating,
-            feedback
-          }
-        ]);
+        .insert([feedbackData]);
 
       // Reset form and show thank you dialog
       setRating(null);
@@ -138,7 +149,7 @@ export default function FeedbackDialog() {
             <Button 
               type="submit"
               className="w-full"
-              disabled={!rating || isSubmitting}
+              disabled={rating === null || isSubmitting}
             >
               {isSubmitting ? 'Sending...' : 'Send feedback'}
             </Button>

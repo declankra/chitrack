@@ -1,4 +1,6 @@
 // src/components/home/HomeStopSection.tsx
+'use client';
+
 import React, { useMemo } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +17,7 @@ import type { Station, Arrival, StationStop } from '@/lib/types/cta';
 import ArrivalTimeDisplay from '@/components/shared/ArrivalTimeDisplay';
 
 interface HomeStopSectionProps {
-  homeStopId: string;
+  homeStopId: string | null;
   stations: Station[];
   className?: string;
 }
@@ -28,14 +30,13 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
   stations,
   className
 }) => {
-  // Use the centralized time provider instead of a local timer
   const { currentTime } = useTime();
-  
-  // Get home stop details from static data (can be used as fallback)
-  // We primarily rely on arrival data now for display, but this can be useful.
-  const staticHomeStopDetails = useMemo(() => findStopById(homeStopId, stations), [homeStopId, stations]);
-  
-  // Fetch arrivals for home stop
+
+  // Call findStopById only if homeStopId is not null
+  const staticHomeStopDetails = useMemo(() => {
+    return homeStopId ? findStopById(homeStopId, stations) : undefined;
+  }, [homeStopId, stations]);
+
   const {
     data: homeStopArrivals,
     isLoading: homeStopLoading,
@@ -43,46 +44,40 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
     refresh: refreshHomeStop,
     isRefetching: isRefetchingHomeStop,
     lastUpdated: homeStopLastUpdated
-  } = useStopArrivals(homeStopId, { enabled: !!homeStopId });
-  
-  // Animation state for refresh button
+    // Pass empty string if homeStopId is null to satisfy type, but rely on enabled flag
+  } = useStopArrivals(homeStopId ?? '', { enabled: !!homeStopId });
+
   const { isAnimating, triggerAnimation } = useRefreshAnimation();
-  
-  // Filter stale arrivals
+
   const filteredArrivals = useMemo(() => {
     if (!homeStopArrivals?.arrivals) return [];
-    // Apply filtering based on arrival time
-    return filterStaleArrivals(homeStopArrivals.arrivals, 2, currentTime); 
+    return filterStaleArrivals(homeStopArrivals.arrivals, 2, currentTime);
   }, [homeStopArrivals, currentTime]);
-  
-  // --- Derive Display Info from Arrivals (or fallback) ---
+
   const displayInfo = useMemo(() => {
     if (homeStopArrivals?.arrivals && homeStopArrivals.arrivals.length > 0) {
-      // Use the first arrival's data as representative for the stop header
       const firstArrival = homeStopArrivals.arrivals[0];
       return {
         stationName: firstArrival.staNm,
-        directionName: firstArrival.stpDe || 'Direction Info Unavailable' // Use stpDe
+        directionName: firstArrival.stpDe || 'Direction Info Unavailable'
       };
     } else if (staticHomeStopDetails) {
-      // Fallback to static GTFS data if no arrivals are present
       return {
         stationName: staticHomeStopDetails.station.stationName,
-        directionName: staticHomeStopDetails.stop.directionName || 'Direction Info Unavailable' // Use GTFS directionName
+        directionName: staticHomeStopDetails.stop.directionName || 'Direction Info Unavailable'
       };
     }
-    return { stationName: 'Loading...', directionName: 'Loading...' }; // Default loading state
+    return { stationName: 'Loading...', directionName: 'Loading...' };
   }, [homeStopArrivals, staticHomeStopDetails]);
-  // --- End Derive Display Info ---
 
-  // Handle refresh with animation
   const handleRefresh = () => {
+    if (!homeStopId) return;
     triggerAnimation();
     refreshHomeStop();
   };
 
   // If no home stop is set
-  if (!homeStopId || !staticHomeStopDetails) {
+  if (!homeStopId) {
     return (
       <Card className={cn("", className)}>
         <CardHeader className="pb-2">
@@ -104,7 +99,8 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
       </Card>
     );
   }
-  
+
+  // If homeStopId is valid, proceed with rendering the card
   return (
     <Card className={cn("", className)}>
       <CardHeader className="pb-2">
@@ -113,43 +109,43 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
             <House className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-semibold">Home Stop</h2>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {homeStopLastUpdated && (
               <span className="text-xs text-muted-foreground">
                 {formatRelativeTime(homeStopLastUpdated, currentTime)}
               </span>
             )}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8" 
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
               onClick={handleRefresh}
-              disabled={isRefetchingHomeStop}
+              disabled={isRefetchingHomeStop || !homeStopId}
             >
-              <RefreshCw 
+              <RefreshCw
                 className={cn(
-                  "h-4 w-4", 
+                  "h-4 w-4",
                   (isAnimating || isRefetchingHomeStop) && "animate-spin"
-                )} 
+                )}
               />
               <span className="sr-only">Refresh</span>
             </Button>
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent>
-        {/* Home stop information - Updated to use derived displayInfo */}
+        {/* Stop details */} 
         <div className="flex items-center gap-2 mb-3">
           <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <div className="flex-grow min-w-0"> {/* Added min-w-0 for flex shrink */} 
+          <div className="flex-grow min-w-0">
             <h3 className="font-semibold truncate" title={displayInfo.stationName}>{displayInfo.stationName}</h3>
             <p className="text-xs text-muted-foreground truncate" title={displayInfo.directionName}>{displayInfo.directionName}</p>
           </div>
         </div>
-        
-        {/* Arrivals content */}
+
+        {/* Arrivals content - use homeStopLoading */} 
         {homeStopLoading ? (
           <div className="flex justify-center py-4">
             <div className="flex items-center gap-2">
@@ -168,8 +164,8 @@ export const HomeStopSection: React.FC<HomeStopSectionProps> = ({
           <div className="text-center py-4">
             <p className="text-muted-foreground">No upcoming arrivals</p>
             <p className="text-xs text-muted-foreground mt-1">
-              {homeStopArrivals?.arrivals && homeStopArrivals.arrivals.length > 0 
-                ? "Next trains are not arriving soon" 
+              {homeStopArrivals?.arrivals && homeStopArrivals.arrivals.length > 0
+                ? "Next trains are not arriving soon"
                 : "No trains currently scheduled"}
             </p>
           </div>

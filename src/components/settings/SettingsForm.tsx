@@ -6,7 +6,7 @@ import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { MapPin, X } from "lucide-react";
 import StopSelectorModal from "@/components/shared/StopSelectorModal";
 import { Station, StationStop } from "@/lib/types/cta";
-import type { UserData } from "@/lib/types/user";
+import type { UserData, StopInfo } from "@/lib/types/user";
 import { findStopById } from "@/lib/utilities/findStop";
 
 // Define the structure received from the updated modal
@@ -17,12 +17,12 @@ interface StopSelection {
 }
 
 interface SettingsFormProps {
-  userData: UserData;
+  userData: UserData | null;
   stations: Station[];
   stationsLoading: boolean;
   isSaving: boolean;
   isFetching: boolean;
-  onSave: (userData: UserData) => Promise<void>;
+  onSave: (updatedFields: Partial<Omit<UserData, 'deviceId' | 'userId' | 'createdAt' | 'updatedAt' | 'firstOpenDate'>>) => Promise<void | boolean>;
   onRefresh: () => Promise<void>;
 }
 
@@ -35,171 +35,158 @@ export default function SettingsForm({
   onSave,
   onRefresh,
 }: SettingsFormProps) {
-  // Local state for form data (persisted)
-  const [userName, setUserName] = useState(userData.userName || "");
-  const [homeStop, setHomeStop] = useState(userData.homeStop || "");
-  const [favoriteStops, setFavoriteStops] = useState<string[]>(
-    Array.isArray(userData.favoriteStops) && userData.favoriteStops.length > 0
-      ? userData.favoriteStops
-      : [] // Initialize as empty, add button handles adding first field
-  );
-  const [paidUserStatus, setPaidUserStatus] = useState(userData.paidUserStatus || false);
+  // Calculate initial state outside useState for clarity
+  const initialUserName = userData?.userName || "";
+  const initialHomeStopId = userData?.homeStop?.stop_id || null;
+  const initialFavoriteStopIds = userData?.favoriteStops?.map(stop => stop.stop_id) ?? [];
+  const initialPaidUserStatus = userData?.paidUserStatus || false;
+
+  const [userName, setUserName] = useState(initialUserName);
+  const [homeStopId, setHomeStopId] = useState<string | null>(initialHomeStopId);
+  // Initialize state with the pre-calculated value
+  const [favoriteStopIds, setFavoriteStopIds] = useState<string[]>(initialFavoriteStopIds);
+  const [paidUserStatus, setPaidUserStatus] = useState(initialPaidUserStatus);
   
-  // --- Temporary state for displaying selected direction names --- 
-  const [tempHomeStopInfo, setTempHomeStopInfo] = useState<{ stationName: string | null, directionName: string | null } | null>(null);
-  const [tempFavoriteStopInfo, setTempFavoriteStopInfo] = useState<Array<{ stationName: string | null, directionName: string | null } | null>>([]);
-  // --- End temporary state ---
-  
-  // Station selection UI state
   const [showStationSelector, setShowStationSelector] = useState(false);
   const [selectedStopType, setSelectedStopType] = useState<"home" | `favorite${number}` | null>(null);
   const [favoriteIndex, setFavoriteIndex] = useState<number | null>(null);
 
-  // Update local state when userData changes (e.g. after refresh or initial load)
+  // useEffect updates state when userData prop changes
   React.useEffect(() => {
-    setUserName(userData.userName || "");
-    setHomeStop(userData.homeStop || "");
-    const initialFavorites = Array.isArray(userData.favoriteStops) && userData.favoriteStops.length > 0
-      ? userData.favoriteStops
-      : [];
-    setFavoriteStops(initialFavorites);
-    setPaidUserStatus(userData.paidUserStatus || false);
-    
-    // Reset temporary display state on data refresh
-    setTempHomeStopInfo(null);
-    setTempFavoriteStopInfo(new Array(initialFavorites.length).fill(null)); 
-    
+    if (userData) {
+      setUserName(userData.userName || "");
+      setHomeStopId(userData.homeStop?.stop_id || null);
+      setFavoriteStopIds(userData.favoriteStops?.map(stop => stop.stop_id) ?? []);
+      setPaidUserStatus(userData.paidUserStatus || false);
+    } else {
+      setUserName("");
+      setHomeStopId(null);
+      setFavoriteStopIds([]);
+      setPaidUserStatus(false);
+    }
   }, [userData]);
   
-  // Find station name helper (needed for temporary display)
-  const findStationName = (stationId: string): string | null => {
-      const station = stations.find(s => s.stationId === stationId);
-      return station?.stationName || null;
-  }
-
-  // Get home stop details for display (uses temp state first, then fallback)
+  // --- Derive display details directly from IDs using findStopById --- 
   const homeStopDisplayDetails = React.useMemo(() => {
-    if (tempHomeStopInfo?.stationName && tempHomeStopInfo?.directionName) {
-      return tempHomeStopInfo;
-    }
-    // Fallback to findStopById using the stored stopId
-    const details = findStopById(homeStop, stations);
+    if (!homeStopId) return null;
+    const details = findStopById(homeStopId, stations);
+    // Return display structure needed by UI
     return details ? { stationName: details.station.stationName, directionName: details.stop.directionName } : null;
-  }, [homeStop, stations, tempHomeStopInfo]);
+  }, [homeStopId, stations]);
   
-  // Get favorite stop details for display (uses temp state first, then fallback)
   const favoriteStopsDisplayDetails = React.useMemo(() => {
-     if (!stations.length) return new Array(favoriteStops.length).fill(null); // Handle stations not loaded
-     
-     return favoriteStops.map((stopId, idx) => {
-        // Prioritize temporary state for this index
-        if (tempFavoriteStopInfo[idx]?.stationName && tempFavoriteStopInfo[idx]?.directionName) {
-           return tempFavoriteStopInfo[idx];
-        }
-        // Fallback to findStopById using the stored stopId
+     if (!stations.length) return new Array(favoriteStopIds.length).fill(null);
+     return favoriteStopIds.map((stopId) => {
         if (!stopId) return null;
         const details = findStopById(stopId, stations);
         return details ? { stationName: details.station.stationName, directionName: details.stop.directionName } : null;
      });
-  }, [favoriteStops, stations, tempFavoriteStopInfo]);
+  }, [favoriteStopIds, stations]);
+  // --- End Derive Display Details --- 
 
-  // Handle station selector opening
   const openStationSelector = (type: "home" | `favorite${number}`) => {
     setSelectedStopType(type);
     setShowStationSelector(true);
-    
     if (type.startsWith("favorite")) {
-      const index = parseInt(type.replace("favorite", ""));
-      setFavoriteIndex(index);
+      setFavoriteIndex(parseInt(type.replace("favorite", "")));
     } else {
       setFavoriteIndex(null);
     }
   };
   
-  // Handle stop selection and close station selector - Updated
   const handleStopSelection = (selection: StopSelection) => {
     if (!selectedStopType) return;
-    
-    const { stopId, stationId, directionName } = selection;
-    const stationName = findStationName(stationId); // Get station name for display
-    const displayInfo = { stationName, directionName };
-    
+    const { stopId } = selection; // Primarily need the stopId to store
+
     if (selectedStopType === "home") {
-      setHomeStop(stopId);
-      setTempHomeStopInfo(displayInfo); // Store for immediate display
+      setHomeStopId(stopId); // Store the ID
+      // No need for temp state anymore
     } else if (favoriteIndex !== null && favoriteIndex >= 0) {
-      const updatedFavorites = [...favoriteStops];
-      // Ensure the array is long enough (might happen if adding a new favorite)
+      const updatedFavorites = [...favoriteStopIds];
       if (favoriteIndex >= updatedFavorites.length) {
          updatedFavorites.push(stopId);
       } else {
          updatedFavorites[favoriteIndex] = stopId;
       }
-      setFavoriteStops(updatedFavorites);
-      
-      // Update temporary display state for favorites
-      const updatedTempInfo = [...tempFavoriteStopInfo];
-      updatedTempInfo[favoriteIndex] = displayInfo;
-      setTempFavoriteStopInfo(updatedTempInfo);
+      setFavoriteStopIds(updatedFavorites); // Store the IDs
+      // No need for temp state anymore
     }
-    
     closeStationSelector();
   };
   
-  // Close station selector
   const closeStationSelector = () => {
     setShowStationSelector(false);
     setSelectedStopType(null);
     setFavoriteIndex(null);
   };
 
-  // Add favorite stops field
   const addFavoriteStopField = () => {
-    if (favoriteStops.length < 3) {
-      setFavoriteStops([...favoriteStops, ""]); // Add empty string placeholder
-      setTempFavoriteStopInfo([...tempFavoriteStopInfo, null]); // Add placeholder for temp info
+    if (favoriteStopIds.length < 3) {
+      setFavoriteStopIds([...favoriteStopIds, ""]); // Add empty string placeholder for the input field logic
     }
   };
 
-  // Remove favorite stops field - Updated
   const removeFavoriteStopField = (index: number) => {
-    const updatedFavorites = [...favoriteStops];
+    const updatedFavorites = [...favoriteStopIds];
     updatedFavorites.splice(index, 1);
-    setFavoriteStops(updatedFavorites);
-    
-    // Also remove corresponding temp info
-    const updatedTempInfo = [...tempFavoriteStopInfo];
-    updatedTempInfo.splice(index, 1);
-    setTempFavoriteStopInfo(updatedTempInfo);
+    setFavoriteStopIds(updatedFavorites);
   };
 
-  // Get modal title based on selected stop type
   const getModalTitle = () => {
-    if (selectedStopType === "home") {
-      return "Select Home Stop & Direction";
-    } else {
-      return "Select Favorite Stop & Direction";
-    }
+    return selectedStopType === "home" ? "Select Home Stop & Direction" : "Select Favorite Stop & Direction";
   };
 
-  // Handle form submission
+  // Helper to convert a stop ID to a StopInfo object (partially populated)
+  const createStopInfoFromId = (stopId: string | null): StopInfo | null => {
+    if (!stopId) return null;
+    const details = findStopById(stopId, stations);
+    if (!details) return null; // Stop details not found
+
+    // Correctly access directionName from details.stop
+    return {
+        stop_id: details.stop.stopId, // Use stopId from the details
+        route_id: 'Unknown', // Placeholder - Needs to be sourced if possible
+        direction_id: details.stop.directionName || 'Unknown', // Use directionName
+        stop_name: details.stop.stopName || details.station.stationName || 'Unknown Stop' // Use stopName or fallback
+    };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Save only the essential data (stopIds)
-    const updatedUserData: UserData = {
-      userName,
-      homeStop, 
-      favoriteStops: favoriteStops.filter(stop => !!stop), // Filter out empty strings
-      paidUserStatus,
+    if (!userData) return; // Should not happen if form is rendered
+
+    // Convert IDs back to StopInfo objects for saving
+    const homeStopForSave = createStopInfoFromId(homeStopId);
+    const favoriteStopsForSave = favoriteStopIds
+      .map(id => createStopInfoFromId(id))
+      .filter((stop): stop is StopInfo => stop !== null); // Filter out nulls
+
+    // Prepare the partial update object expected by the hook
+    const updatedFields: Partial<Omit<UserData, 'deviceId' | 'userId' | 'createdAt' | 'updatedAt' | 'firstOpenDate'>> = {
+      userName: userName,
+      homeStop: homeStopForSave,
+      favoriteStops: favoriteStopsForSave,
+      paidUserStatus: paidUserStatus,
     };
-    
-    await onSave(updatedUserData);
-    
-    // Optionally clear temporary display state after successful save
-    // setTempHomeStopInfo(null);
-    // setTempFavoriteStopInfo(new Array(favoriteStops.filter(s => !!s).length).fill(null));
+
+    await onSave(updatedFields); // Call onSave with the correctly typed partial update
   };
+
+  // Render loading state if user data or stations aren't ready
+  if (!userData || stationsLoading) {
+      return (
+          <Card>
+              <CardHeader><CardTitle>Customize Your Profile</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                  <div className="h-8 bg-muted rounded w-3/4 animate-pulse"></div> {/* Placeholder for name */}
+                  <div className="h-16 bg-muted rounded w-full animate-pulse"></div> {/* Placeholder for home stop */}
+                  <div className="h-16 bg-muted rounded w-full animate-pulse"></div> {/* Placeholder for fav stop */}
+                  <div className="h-6 bg-muted rounded w-1/2 animate-pulse"></div> {/* Placeholder for paid status */}
+                  <div className="h-10 bg-muted rounded w-1/4 animate-pulse self-end"></div> {/* Placeholder for button */}
+              </CardContent>
+          </Card>
+      );
+  }
 
   return (
     <>
@@ -267,17 +254,17 @@ export default function SettingsForm({
                 Favorite Stops (up to 3)
               </label>
               <div className="space-y-2">
-                {favoriteStops.map((stopId, idx) => {
+                {favoriteStopIds.map((stopId, idx) => {
                   const stopDisplayDetails = favoriteStopsDisplayDetails[idx];
                   return (
                     <div key={`fav-${idx}`} className="border border-border rounded overflow-hidden min-h-[60px]">
-                      {stopDisplayDetails ? (
+                      {stopId ? (
                         <div className="p-3 flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                             <div className="flex-grow">
-                              <p className="font-medium">{stopDisplayDetails.stationName || "Station Name Missing"}</p>
-                              <p className="text-xs text-muted-foreground">{stopDisplayDetails.directionName || "Direction Missing"}</p>
+                              <p className="font-medium">{stopDisplayDetails?.stationName || "Station Name Missing"}</p>
+                              <p className="text-xs text-muted-foreground">{stopDisplayDetails?.directionName || "Direction Missing"}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
@@ -309,22 +296,20 @@ export default function SettingsForm({
                           onClick={() => openStationSelector(`favorite${idx}`)}
                         >
                           <span>Select favorite stop {idx + 1}</span>
-                           {/* Allow removing empty slots if they aren't the first one */}
-                           {favoriteStops.length > 0 && (
-                              <Button
-                                 type="button"
-                                 variant="ghost"
-                                 size="icon"
-                                 onClick={(e) => {
-                                    e.stopPropagation(); // Prevent opening the modal
-                                    removeFavoriteStopField(idx);
-                                 }}
-                                 className="text-destructive hover:text-destructive/80"
-                                 aria-label={`Remove Favorite Stop ${idx + 1}`}
-                              >
-                                 <X className="h-4 w-4" />
-                              </Button>
-                           )}
+                           {/* Allow removing empty slots */}
+                           <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                 e.stopPropagation();
+                                 removeFavoriteStopField(idx);
+                              }}
+                              className="text-destructive hover:text-destructive/80"
+                              aria-label={`Remove Favorite Stop ${idx + 1}`}
+                           >
+                              <X className="h-4 w-4" />
+                           </Button>
                         </button>
                       )}
                     </div>
@@ -332,7 +317,7 @@ export default function SettingsForm({
                 })}
                 
                 {/* Add Favorite Button */} 
-                {favoriteStops.length < 3 && (
+                {favoriteStopIds.length < 3 && (
                    <button
                      type="button"
                      className="mt-2 text-sm hover:underline flex items-center gap-1 p-2 border border-dashed rounded w-full justify-center text-muted-foreground hover:text-primary hover:border-primary"
@@ -344,7 +329,7 @@ export default function SettingsForm({
               </div>
             </div>
             
-            {/* Paywall Status (Web Not Enforced) */}
+            {/* Paywall Status */}
             <div className="flex items-center gap-2 pt-2">
                <input
                   id="paidUser"
@@ -365,7 +350,7 @@ export default function SettingsForm({
             <div className="flex items-center justify-between pt-4">
               <Button
                 type="submit"
-                disabled={isSaving || isFetching}
+                disabled={isSaving || isFetching || !userData} // Disable if no userData
                 className="px-4 py-2 rounded"
               >
                 {isSaving ? "Saving..." : "Save Settings"}
