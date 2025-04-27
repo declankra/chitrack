@@ -1,6 +1,7 @@
 // src/app/(marketing)/page.tsx
 import { Hero } from "@/components/marketing/hero";
 import { Card } from "@/components/ui/card";
+import { BlogLinks } from "@/components/marketing/blogLinks";
 import { 
   Clock, 
   StarIcon, 
@@ -197,6 +198,7 @@ export default function LandingPage() {
       <Features />
       <ProblemSolution />
       <FAQ />
+      <BlogLinks />
     </>
   );
 }

@@ -9,6 +9,7 @@ import { RequestAccessDialog } from "@/components/marketing/RequestAccessDialog"
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { TextShimmer } from "@/components/ui/text-shimmer";
+import Image from "next/image";
 
 // Hero section component
 export function Hero() {
@@ -48,24 +49,25 @@ export function Hero() {
                 <Users className="h-8 w-8 text-muted-foreground" />
               </div>
               <p className="text-sm text-muted-foreground">
-                Trusted by 1,000+ Chicago commuters (soon)
+                Trusted by 1,000+ Chicago commuters
               </p>
             </div>
 
-            {/* Request Access Button */}
-            <Button 
-              size="lg" 
-              className="w-full sm:w-auto"
-              onClick={() => setIsDialogOpen(true)}
+            {/* Download on the App Store Button */}
+            <Link 
+              href="https://apps.apple.com/us/app/chitrack-ventra-cta-tracker/id6745131685" 
+              target="_blank" 
+              className="inline-block mt-4 w-full sm:w-auto"
+              aria-label="Download ChiTrack on the App Store"
             >
-              Request Free Limetime Access
-            </Button>
-            
-            {/* Request Access Dialog */}
-            <RequestAccessDialog 
-              isOpen={isDialogOpen} 
-              onClose={() => setIsDialogOpen(false)} 
-            />
+              <Image 
+                src="/app-store-badge.svg" 
+                alt="Download on the App Store" 
+                width={240}
+                height={81}
+                className="mx-auto sm:mx-0"
+              />
+            </Link>
           </div>
 
           {/* iPhone mockup */}
