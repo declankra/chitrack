@@ -30,13 +30,16 @@ export default function Footer() {
             </a>
           </span>
         </div>
-        <div className="flex items-center">
-          <a 
-            href="/privacy" 
-            className="text-sm text-muted-foreground hover:text-primary transition-colors"
-          >
-            Privacy Policy
-          </a>
+        <div className="flex flex-col items-center space-y-1">
+          <div className="flex items-center space-x-4">
+            <a 
+              href="/privacy" 
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              Privacy Policy
+            </a>
+            <span className="text-sm text-gray-500">&copy; {new Date().getFullYear()} ChiTrack. All rights reserved.</span>
+          </div>
         </div>
         <div className="flex items-center space-x-4">
           <a 
