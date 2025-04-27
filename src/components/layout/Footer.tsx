@@ -30,6 +30,14 @@ export default function Footer() {
             </a>
           </span>
         </div>
+        <div className="flex items-center">
+          <a 
+            href="/privacy" 
+            className="text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            Privacy Policy
+          </a>
+        </div>
         <div className="flex items-center space-x-4">
           <a 
             href="https://twitter.com/dkbuildsco" 
