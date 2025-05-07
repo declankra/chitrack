@@ -5,12 +5,17 @@ ChiTrack (“the App”) is a simple Chicago CTA train-tracking tool created by 
 
 ---
 
+### Disclaimer
+This application is not affiliated with, endorsed by, or sponsored by the Chicago Transit Authority. All CTA data used in this application is provided by the CTA through its public API. The CTA logo and other trademarks are the property of the Chicago Transit Authority and are used in accordance with their branding guidelines.
+
+---
+
 ### 1.  What We Collect — Non-Identifiable Data Only
 
 | Data Type | Examples | Purpose | Linked to You? |
 |-----------|----------|---------|----------------|
 | **Identifiers** | – Randomly-generated User ID<br>– Device ID (Apple-assigned)** | • Ensure core app functionality (e.g., syncing favorites across sessions)<br>• Basic, aggregated analytics | **No** — never combined with personal details |
-| **Usage Data** | – Screens viewed<br>– App interaction events (e.g., tapping “Refresh”) | • Diagnose crashes & bugs<br>• Understand feature usage to improve the App | **No** |
+| **Usage Data** | – Screens viewed<br>– App interaction events (e.g., tapping "Refresh") | • Diagnose crashes & bugs<br>• Understand feature usage to improve the App | **No** |
 
 **We do *not* collect:**  
 * GPS or precise location  
@@ -31,7 +36,7 @@ We do **not** use your data for advertising, profiling, or selling to third part
 
 ### 3.  Third-Party Services
 ChiTrack does **not** embed advertising SDKs or social media trackers.  
-We rely on the following Apple-provided services, which may independently collect limited information (see Apple’s privacy documentation):
+We rely on the following Apple-provided services, which may independently collect limited information (see Apple's privacy documentation):
 
 * **Apple App Store / TestFlight** – handles app distribution and crash diagnostics.
 
@@ -43,9 +48,9 @@ We rely on the following Apple-provided services, which may independently collec
 ---
 
 ### 5.  Your Choices & Rights
-* **Opt-Out of Analytics** – Disable “Share Analytics” for the App in **iOS Settings › Privacy & Security › Analytics & Improvements**.  
-* **Request Deletion** – Email us at **privacy@chitrack.com** with your anonymous User ID (found in _Settings › About_ in the App) and we’ll delete associated data within 30 days.  
-* **Regional Rights** – If you reside in a region with privacy regulations (e.g., GDPR, CCPA), you may have additional rights (access, correction, portability). Contact us and we’ll help.
+* **Opt-Out of Analytics** – Disable "Share Analytics" for the App in **iOS Settings › Privacy & Security › Analytics & Improvements**.  
+* **Request Deletion** – Email us at **privacy@chitrack.com** with your anonymous User ID (found in _Settings › About_ in the App) and we'll delete associated data within 30 days.  
+* **Regional Rights** – If you reside in a region with privacy regulations (e.g., GDPR, CCPA), you may have additional rights (access, correction, portability). Contact us and we'll help.
 
 ---
 
@@ -54,7 +59,7 @@ We follow industry-standard practices—encryption in transit (HTTPS) and at res
 
 ---
 
-### 7.  Children’s Privacy
+### 7.  Children's Privacy
 ChiTrack is not directed to children under 13, and we do not knowingly collect personal data from them. If you believe a child has provided us data, contact us and we will promptly delete it.
 
 ---
