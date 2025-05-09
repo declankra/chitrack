@@ -38,6 +38,12 @@ export default function Footer() {
             >
               Privacy Policy
             </a>
+            <a 
+              href="/support" 
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              Support
+            </a>
             <span className="text-sm text-gray-500">&copy; {new Date().getFullYear()} ChiTrack. All rights reserved.</span>
           </div>
         </div>

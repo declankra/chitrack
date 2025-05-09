@@ -26,7 +26,7 @@ const Features = () => (
         {[
           {
             icon: Clock,
-            title: "One-tap access",
+            title: "Zero-tap access",
             description:
               "See your home stop arrival times instantly. No more navigating through menus.",
           },
@@ -105,7 +105,7 @@ const ProblemSolution = () => (
             </p>
             <ul className="space-y-2 text-muted-foreground">
               <li className="flex items-center gap-2">
-                • One-tap access to your most frequently used stations
+                • Zero-tap access to your most frequently used stations
               </li>
               <li className="flex items-center gap-2">
                 • Clean, professional interface that respects your time and sanity
@@ -142,7 +142,27 @@ const FAQ = () => {
     {
       question: "How much does ChiTrack cost?",
       answer:
-        "ChiTrack offers a 5-day free trial, after which a one-time payment of $6.99 unlocks lifetime access to all features."
+        "ChiTrack is completely free to use while in beta. There are no subscriptions, trials, or hidden fees."
+    },
+    {
+      question: "I commute on the CTA train daily. Why is ChiTrack better than other CTA-specific apps?",
+      answer:
+        "ChiTrack is designed for you. It's the simplest, fastest, and most modern CTA tracking app. We cut the clutter so you get your train times quickly and intuitively, making your daily commute smoother."
+    },
+    {
+      question: "Why should I use ChiTrack instead of Google or Apple Maps for train times?",
+      answer:
+        "Accuracy. ChiTrack uses the official CTA data feed, giving you real-time arrival information that's more reliable than general map apps. If you need to know exactly when your train is coming, ChiTrack is the way to go."
+    },
+    {
+      question: "What's so special about selecting a direction, like 'Belmont towards the Loop'?",
+      answer:
+        "It saves you time and hassle. You only care about your train, in your direction. ChiTrack lets you save exactly that, so you don't have to sift through times for trains going the other way. This, combined with setting a home/favorite stop means arrival times are on your screen instantly – zero clicks needed!"
+    },
+    {
+      question: "Okay, zero clicks for my usual commute is great. What if I'm going somewhere else?",
+      answer:
+        "ChiTrack makes that easy too. Quickly search for any CTA station and you'll see all upcoming arrivals for every line and direction at that station. It's just as straightforward for new trips as it is for your daily routine."
     },
     {
       question: "Can I see bus arrivals on ChiTrack?",

@@ -47,9 +47,10 @@ export function IPhoneFrame({ children, className = "", image, imageAlt = "App s
           {/* Inner screen container */}
           <div className="absolute inset-[4px] rounded-[2.85rem] overflow-hidden bg-black">
             {/* Dynamic Island */}
-            <div className="absolute left-1/2 -translate-x-1/2 top-2 h-[35px] w-[120px] bg-black rounded-full z-20" />
+            {/* <div className="absolute left-1/2 -translate-x-1/2 top-2 h-[35px] w-[120px] bg-black rounded-full z-20" /> */}
 
             {/* Status Bar */}
+            {/*
             <div className="relative h-12 px-6 flex items-center justify-between text-white text-sm z-10">
               <div>{time}</div>
               <div className="flex items-center gap-1.5">
@@ -58,6 +59,7 @@ export function IPhoneFrame({ children, className = "", image, imageAlt = "App s
                 <Battery className="h-4 w-4" />
               </div>
             </div>
+            */}
 
             {/* Screen Content */}
             <div className="absolute inset-0 overflow-hidden">
