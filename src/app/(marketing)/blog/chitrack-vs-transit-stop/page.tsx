@@ -106,7 +106,7 @@ export default function ChiTrackVsTransitStopPage() {
 
           <div className="mt-8 mb-6 flex justify-center">
             <Link
-              href="https://apps.apple.com/us/app/chitrack/id6478848938"
+              href="https://apps.apple.com/app/chitrack-chicago-l-tracker/id6745131685"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-black hover:bg-gray-800 dark:text-black dark:bg-white dark:hover:bg-gray-200 transition-colors"

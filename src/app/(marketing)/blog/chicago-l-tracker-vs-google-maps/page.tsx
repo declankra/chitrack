@@ -28,7 +28,7 @@ export default function ChicagoLTrackerVsGoogleMapsPage() {
           </p>
 
           <div className="flex justify-center my-8">
-             <Link href="https://apps.apple.com/us/app/chitrack/id6504821896" target="_blank" rel="noopener noreferrer" aria-label="Download ChiTrack on the App Store">
+             <Link href="https://apps.apple.com/app/chitrack-chicago-l-tracker/id6745131685" target="_blank" rel="noopener noreferrer" aria-label="Download ChiTrack on the App Store">
                <Image
                  src="/app-store-badge.svg"
                  alt="Download on the App Store"

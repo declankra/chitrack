@@ -43,7 +43,7 @@ export default function RealTimeCtaAlertsPage() {
             alerts using the ChiTrack app.
           </p>
           <div className="flex justify-center mb-8">
-            <Link href="https://apps.apple.com/us/app/chitrack-ventra-cta-tracker/id6745131685" className="inline-block">
+            <Link href="https://apps.apple.com/app/chitrack-chicago-l-tracker/id6745131685" className="inline-block">
               <Image
                 src="/app-store-badge.svg"
                 alt="Download ChiTrack on the App Store"
@@ -121,7 +121,7 @@ export default function RealTimeCtaAlertsPage() {
           </p>
           <p className="text-center mt-8">
             <Link
-              href="https://apps.apple.com/us/app/chitrack-ventra-cta-tracker/id6745131685" // TODO: Update with actual App Store link
+              href="https://apps.apple.com/app/chitrack-chicago-l-tracker/id6745131685" // TODO: Update with actual App Store link
               className="inline-block text-lg font-semibold px-6 py-3 rounded-lg bg-black text-white hover:bg-gray-800 transition-colors"
             >
               Get ChiTrack on the App Store

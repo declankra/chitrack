@@ -25,22 +25,6 @@ const articles = [
     description: "Discover why ChiTrack offers more accurate real-time CTA L train tracking compared to Google Maps.",
     slug: "/blog/chicago-l-tracker-vs-google-maps",
   },
-  // Removed other placeholder articles for brevity/focus
-  // {
-  //   title: "Automate your accounts payable",
-  //   description: "Discover how automation can save time and reduce errors in your AP process.",
-  //   slug: "/blog/automate-accounts-payable",
-  // },
-  // {
-  //   title: "Tips for managing cash flow",
-  //   description: "Effective strategies for small businesses to maintain healthy cash flow.",
-  //   slug: "/blog/managing-cash-flow",
-  // },
-  // {
-  //   title: "Understanding trade finance",
-  //   description: "A beginner's guide to the complex world of trade finance options.",
-  //   slug: "/blog/understanding-trade-finance",
-  // },
 ];
 
 export const BlogLinks = () => {

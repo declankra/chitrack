@@ -51,7 +51,7 @@ export default function VentraGuidePage() {
 
           {/* Initial Download CTA - Ensure this is below H1/lead */}
           <div className="mb-8 flex justify-center">
-            <Link href="https://apps.apple.com/us/app/chitrack/id6505118784" target="_blank" rel="noopener noreferrer">
+            <Link href="https://apps.apple.com/app/chitrack-chicago-l-tracker/id6745131685" target="_blank" rel="noopener noreferrer">
               <Image
                 src="/app-store-badge.svg"
                 alt="Download ChiTrack on the App Store"
@@ -198,9 +198,7 @@ export default function VentraGuidePage() {
               Ready to streamline your Chicago commute?
             </p>
             <Link
-              href="https://apps.apple.com/us/app/chitrack/id6505118784"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="https://apps.apple.com/app/chitrack-chicago-l-tracker/id6745131685"
               className="inline-block rounded-md bg-black px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:bg-white dark:text-black dark:hover:bg-gray-200 dark:focus:ring-gray-300"
             >
               Download ChiTrack Today

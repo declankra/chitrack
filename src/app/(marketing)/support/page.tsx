@@ -37,11 +37,9 @@ export default function SupportPage() {
                 Get the latest version of ChiTrack for the best Chicago transit tracking experience.
               </p>
               
-              <Link 
-                href="https://apps.apple.com/us/app/chitrack-ventra-cta-tracker/id6745131685" 
-                target="_blank" 
-                className="inline-block"
-                aria-label="Download ChiTrack on the App Store"
+              <Link
+                href="https://apps.apple.com/app/chitrack-chicago-l-tracker/id6745131685"
+                className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
                 <Image 
                   src="/app-store-badge.svg" 

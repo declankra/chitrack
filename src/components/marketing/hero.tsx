@@ -56,7 +56,7 @@ export function Hero() {
             {/* Download on the App Store Button and Bouncing Arrow */}
             <div className="flex flex-col items-center sm:items-start">
               <Link 
-                href="https://apps.apple.com/us/app/chitrack-ventra-cta-tracker/id6745131685" 
+                href="https://apps.apple.com/app/chitrack-chicago-l-tracker/id6745131685" 
                 target="_blank" 
                 className="inline-block mt-4 w-full sm:w-auto"
                 aria-label="Download ChiTrack on the App Store"
