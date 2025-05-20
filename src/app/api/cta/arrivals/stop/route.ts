@@ -131,7 +131,7 @@ async function fetchFreshStopData(stopId: string): Promise<StopArrivalsResponse>
     key: CTA_API_KEY!,
     outputType: "JSON",
     stpid: stopId,
-    max: "10", // fetch up to 10 so we can filter down to 3 if we want
+    max: "20", // fetch up to 10 so we can filter down to 3 if we want
   });
   
   const ctaUrl = `${baseUrl}?${urlParams.toString()}`;
