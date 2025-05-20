@@ -157,7 +157,7 @@ function processArrivals(rawArrivals: Arrival[]): StationArrivalsResponse[] {
 
   // Build final array with sorted arrivals
   return Object.values(stationMap).map((stationEntry) => {
-    // For each stop, sort arrivals by arrT ascending, slice top 3
+    // For each stop, sort arrivals by arrT ascending
     const stopsArray = Object.values(stationEntry.stops).map((stopEntry) => {
       // Sort arrivals by their predicted arrival time
       stopEntry.arrivals.sort((a, b) => {
@@ -165,8 +165,6 @@ function processArrivals(rawArrivals: Arrival[]): StationArrivalsResponse[] {
         const bTime = parseArrivalTime(b.arrT);
         return aTime - bTime; // ascending
       });
-      // Keep only first 3
-      stopEntry.arrivals = stopEntry.arrivals.slice(0, 3);
 
       return stopEntry;
     });

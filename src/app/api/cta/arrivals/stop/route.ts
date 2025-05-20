@@ -182,7 +182,7 @@ async function fetchFreshStopData(stopId: string): Promise<StopArrivalsResponse>
       relevantArrivals.sort((a, b) => parseArrivalTime(a.arrT) - parseArrivalTime(b.arrT));
 
       // Take up to 3
-      const arrivals = relevantArrivals.slice(0, 3);
+      const arrivals = relevantArrivals;
 
       // final response object
       result = {
