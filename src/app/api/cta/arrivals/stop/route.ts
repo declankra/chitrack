@@ -103,7 +103,7 @@ async function fetchCtaApiWithRetry(url: string, retryCount = 0): Promise<Respon
         return fetchCtaApiWithRetry(url, retryCount + 1);
       }
       console.error(`CTA API error after ${retryCount} retries: Status ${response.status}`);
-      throw new Error(`Failed to fetch data from CTA API: HTTP ${response.status}`);
+      throw new Error("It looks like we couldn't fetch live data, which can happen if your internet connection was temporarily lost. Please check your connection and try again.");
     }
     
     return response;
@@ -151,7 +151,7 @@ async function fetchFreshStopData(stopId: string): Promise<StopArrivalsResponse>
         data.ctatt.errCd,
         ")"
       );
-      throw new Error(`CTA API Error: ${data.ctatt.errNm}`);
+      throw new Error("It looks like we couldn't fetch live data, which can happen if your internet connection was temporarily lost. Please check your connection and try again.");
     }
 
     const rawArrivals: Arrival[] = data.ctatt.eta || [];
@@ -250,7 +250,7 @@ export async function GET(request: NextRequest) {
     console.error("Error in Stop Arrivals API route:", error);
     return NextResponse.json(
       { 
-        error: "Server error fetching stop arrivals.", 
+        error: "It looks like we couldn't fetch live data, which can happen if your internet connection was temporarily lost. Please check your connection and try again.", 
         details: error?.message || "Unknown error",
         stop_id: stopIdParam || "none"
       },

@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     // Fetch CTA arrivals
     const ctaResponse = await fetch(ctaUrl);
     if (!ctaResponse.ok) {
-      return NextResponse.json({ error: "Failed to fetch CTA data." }, { status: 502 });
+      return NextResponse.json({ error: "It looks like we couldn't fetch live data, which can happen if your internet connection was temporarily lost. Please check your connection and try again." }, { status: 502 });
     }
 
     const data = await ctaResponse.json();
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Error in CTA API route:", error);
     return NextResponse.json(
-      { error: "Server error.", details: error.message },
+      { error: "It looks like we couldn't fetch live data, which can happen if your internet connection was temporarily lost. Please check your connection and try again." },
       { status: 500 }
     );
   }
