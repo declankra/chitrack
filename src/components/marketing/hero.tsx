@@ -49,7 +49,7 @@ export function Hero() {
                 <Users className="h-8 w-8 text-muted-foreground" />
               </div>
               <p className="text-sm text-muted-foreground">
-                Trusted by 1,000+ Chicago commuters
+                Trusted by (soon to be) 500+ Chicago commuters
               </p>
             </div>
 
